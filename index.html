@@ -1789,7 +1789,7 @@ const lighterLight = new THREE.PointLight(0xff6a1a, 0, 0.6, 2); lighterLight.pos
 let lighterState = 'out', lighterTimer = 0, lighterHeat = 0, lighterDepth = 0;
 function pushLighter(){
   if (lighterState !== 'out') return;
-  lighterState = 'in'; lighterTimer = 5 + Math.random()*2; toast('lighter: heating…'); click(0.4, 180);
+  lighterState = 'in'; lighterTimer = 5 + Math.random()*2; toast('lighter: heating…'); sfx('ui', 0.25);
 }
 
 // --- glovebox (passenger side): hinged door, opens to reveal a couple of things
@@ -2085,7 +2085,7 @@ function tap(e){
       else if (nm === 'storedoor' || nm === 'pdoor'){
         if (holdingNozzle){ thought('Not with this in my hand.'); return; }
         if (nm === 'storedoor' && !inside && !carNozzle.visible && !fueled){ thought('I just need gas.'); return; }
-        const S = STOPS[stopKind]; click(0.4, 260); doorSwing = 2.2;
+        const S = STOPS[stopKind]; sfx('squeak', 0.6); doorSwing = 2.2;
         fadeTo(()=>{
           inside = !inside; inBath = false;
           if (nm === 'storedoor' && !inside && talked && carNozzle.visible && !fueled && !fueling){ fueling = true; fuelT = 0; startPumpHum(); }   // the pump kicks on as you step out
@@ -2099,7 +2099,7 @@ function tap(e){
       }
       else if (nm === 'woman'){ startDialogWoman(); }
       else if (nm === 'bathdoor'){
-        click(0.35, 230); bathSwing = 2.0;
+        sfx('squeak', 0.55); bathSwing = 2.0;
         fadeTo(()=>{ inBath = !inBath; const sp = inBath ? [31.6, -6.6] : [30.0, -7.0]; const spot = stopG.localToWorld(new THREE.Vector3(sp[0], 0, sp[1])); walker.x = spot.x; walker.z = spot.z; yaw = inBath ? -Math.PI/2 : Math.PI/2; pitch = -0.1; toast(inBath ? 'restroom' : 'store'); });
       }
       else if (nm === 'drinks'){ inspect('They all have caffeine. Can\u2019t have caffeine.'); }
@@ -2107,7 +2107,7 @@ function tap(e){
       else if (nm === 'crier'){ startDialogCrier(); }
       else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the green sign'), 3200); }
       else if (nm === 'arr'){ inspect('These are… my emergency antiarrhythmics. For my heart.'); }
-      else if (nm === 'vend'){ click(0.25, 180); thought('Can\u2019t. They all have caffeine.'); }
+      else if (nm === 'vend'){ sfx('ui', 0.25); thought('Can\u2019t. They all have caffeine.'); }
       else if (nm === 'snack'){ inspect('I\u2019m not hungry.'); }
       else if (nm === 'ccb'){ inspect('That\u2019s… my calcium channel blocker. For my heart.'); }
       else if (nm === 'clerk'){ startDialogClerk(); }
@@ -2115,7 +2115,7 @@ function tap(e){
       else if (nm === 'door103'){
         if (!told103){ thought('Someone\u2019s in there. The light\u2019s on.'); }
         else if (talkedGuest || door103Busy){ knock(); setTimeout(()=> thought('No answer.'), 2600); }
-        else { door103Busy = true; knock(); setTimeout(()=>{ door103Open = true; guest.visible = true; room103Light.intensity = 0.8; click(0.4, 200); setTimeout(startDialogGuest, 900); }, 1700); }
+        else { door103Busy = true; knock(); setTimeout(()=>{ door103Open = true; guest.visible = true; room103Light.intensity = 0.8; sfx('squeak', 0.6); setTimeout(startDialogGuest, 900); }, 1700); }
       }
       else if (nm === 'guest'){ if (door103Open && !inDialog) startDialogGuest(); }
       else if (nm === 'attendant'){ startDialog(); }
@@ -2123,20 +2123,20 @@ function tap(e){
         if (deerCleared){ thought('It\u2019s off the road. That\u2019s all I can do.'); }
         else if (!deerSeen){ deerSeen = true; thought('It\u2019s dead. Or… dying. I have to move it.'); setTimeout(()=> toast('tap it again to take hold, then walk to drag it off the road'), 2600); }
         else if (grabbing){ grabbing = false; toast('let go'); }
-        else { grabbing = true; click(0.3, 140); toast('dragging — walk it to the right shoulder'); }
+        else { grabbing = true; sfx('ui', 0.25); toast('dragging — walk it to the right shoulder'); }
       }
       else if (nm === 'nozzle'){
-        if (holdingNozzle){ showNozzle(holdingNozzle, true); holdingNozzle = null; handNozzle.visible = false; liveHose.visible = false; click(0.4, 300); toast('nozzle back on the pump'); }
+        if (holdingNozzle){ showNozzle(holdingNozzle, true); holdingNozzle = null; handNozzle.visible = false; liveHose.visible = false; sfx('ui', 0.25); toast('nozzle back on the pump'); }
         else if (fueled){ thought('I\u2019ve got what I need.'); }
-        else { let g = h.object; while (g && !g.userData.pump) g = g.parent; holdingNozzle = {group: g, pump: g.userData.pump}; showNozzle(holdingNozzle, false); handNozzle.visible = true; click(0.4, 350); toast('holding the nozzle — take it to the fuel door'); }
+        else { let g = h.object; while (g && !g.userData.pump) g = g.parent; holdingNozzle = {group: g, pump: g.userData.pump}; showNozzle(holdingNozzle, false); handNozzle.visible = true; sfx('ui', 0.25); toast('holding the nozzle — take it to the fuel door'); }
       }
       else if (nm === 'fueldoor'){
         if (!fuelOpen){ fuelOpen = true; lidSfx(true); }
-        if (holdingNozzle){ carNozzle.visible = true; liveHose.userData.hn = holdingNozzle; holdingNozzle = null; handNozzle.visible = false; updateLiveHose(carNozzle, null); click(0.5, 200);
+        if (holdingNozzle){ carNozzle.visible = true; liveHose.userData.hn = holdingNozzle; holdingNozzle = null; handNozzle.visible = false; updateLiveHose(carNozzle, null); sfx('ui', 0.25);
           if (talked && !fueled){ fueling = true; fuelT = 0; startPumpHum(); } else if (!talked) setTimeout(()=> thought('Nothing. The pump\u2019s dead. I\u2019ll have to see the attendant inside.'), 900); }
         else if (!carNozzle.visible) thought('The gas cap.');
       }
-      else if (nm === 'carnozzle'){ if (fueling){ thought('It\u2019s still pumping.'); return; } carNozzle.visible = false; if (liveHose.userData.hn) showNozzle(liveHose.userData.hn, true); liveHose.userData.hn = null; liveHose.visible = false; click(0.4, 300); toast('nozzle back on the pump'); fuelOpen = false; }
+      else if (nm === 'carnozzle'){ if (fueling){ thought('It\u2019s still pumping.'); return; } carNozzle.visible = false; if (liveHose.userData.hn) showNozzle(liveHose.userData.hn, true); liveHose.userData.hn = null; liveHose.visible = false; sfx('ui', 0.25); toast('nozzle back on the pump'); fuelOpen = false; }
     }
     return;
   }
@@ -2156,32 +2156,32 @@ function tap(e){
       else if (stopKind === 'deer'){ startLegThree(); stopKind = 'motel'; stopAt = MOTEL_D; }
       else if (stopKind === 'motel'){ leg = Math.max(leg, 4); stopKind = 'tower'; stopAt = TOWER_D; }   // leg four: past the motel the fog closes in for good
       else { leg = Math.max(leg, 5); stopKind = 'road'; stopAt = null; }   // leg five: past the building, the fog closes in further
-      mode = 'drive'; departed = true; shifter.rotation.x = 0.55; click(0.4, 240); toast('back on the road');
+      mode = 'drive'; departed = true; shifter.rotation.x = 0.55; sfx('ui', 0.25); toast('back on the road');
     }
     return;
   }
-  if (hit.object.name === 'stereo' || hit.object.name === 'power'){ stereoOn = !stereoOn; click(0.3, 500); applyStation(); toast(stereoOn ? 'stereo: on' : 'stereo: off'); }
-  if (hit.object.name === 'tune'){ if (!stereoOn) return; station = (station + 1) % STATIONS.length; tuneKnob.rotation.z += 0.6; click(0.2, 700); tuneBurst = 0.35; applyStation(); toast('tuning… ' + STATIONS[station].label); }
+  if (hit.object.name === 'stereo' || hit.object.name === 'power'){ stereoOn = !stereoOn; sfx('ui', 0.22); applyStation(); toast(stereoOn ? 'stereo: on' : 'stereo: off'); }
+  if (hit.object.name === 'tune'){ if (!stereoOn) return; station = (station + 1) % STATIONS.length; tuneKnob.rotation.z += 0.6; sfx('ui', 0.18); tuneBurst = 0.35; applyStation(); toast('tuning… ' + STATIONS[station].label); }
   if (hit.object.name === 'glovebox'){ gloveOpen = !gloveOpen; lidSfx(gloveOpen); if (gloveOpen){ pills.visible = sd.visible = true; } }
   if (hit.object.name === 'pills'){ inspect('Ibuprofen, for my migraines.'); }
   if (hit.object.name === 'acet'){ inspect('Acetaminophen. For my pain. It doesn\u2019t work very well.'); }
   if (hit.object.name === 'photo'){ inspect('A photograph. I don\u2019t remember when it was taken.'); }
   if (hit.object.name === 'console'){ consoleOpen = !consoleOpen; lidSfx(consoleOpen); if (consoleOpen) consoleItems.visible = true; }
-  if (hit.object.name === 'visor'){ const vs = visors.find(o => o.h === hit.object.parent); vs.open = !vs.open; click(0.3, 260); }
-  if (hit.object.name === 'vanity'){ thought('It\u2019s too dark. I can\u2019t see myself.'); }
+  if (hit.object.name === 'visor'){ const vs = visors.find(o => o.h === hit.object.parent); vs.open = !vs.open; sfx('ui', 0.22); }
+  if (hit.object.name === 'vanity'){ sfx('ui', 0.18); thought('It\u2019s too dark. I can\u2019t see myself.'); }
   if (hit.object.name === 'beta'){ inspect('A beta blocker, for my heart.'); }
   if (hit.object.name === 'thinner'){ inspect('A blood thinner, for my heart.'); }
   if (hit.object.name === 'screwdriver'){ inspect('A screwdriver.'); }
-  if (hit.object.name === 'mirror'){ toast('rearview mirror'); }
-  if (hit.object.name === 'sidemirror'){ toast('side mirror'); }
-  if (hit.object.name === 'domeswitch'){ setDome(!domeOn); }
+  if (hit.object.name === 'mirror'){ sfx('ui', 0.18); toast('rearview mirror'); }
+  if (hit.object.name === 'sidemirror'){ sfx('ui', 0.18); toast('side mirror'); }
+  if (hit.object.name === 'domeswitch'){ sfx('ui', 0.22); setDome(!domeOn); }
   if (hit.object.name === 'lighter'){ pushLighter(); }
 }
 
 const fadeEl = document.getElementById('fade'); let fading = false;
 function fadeTo(fn){ if (fading) return; fading = true; fadeEl.style.opacity = 1; setTimeout(()=>{ fn(); setTimeout(()=>{ fadeEl.style.opacity = 0; fading = false; }, 250); }, 750); }
 function exitCar(){
-  click(0.5, 150);
+  sfx('squeak', 0.5);
   fadeTo(()=>{
     sfx('door2', 0.7);   // the car door shutting behind you, in the dark
     mode = 'walk'; ext.visible = true; cab.visible = false; cab.rotation.set(0,0,0); handTorch.visible = hasTorch;
@@ -2192,7 +2192,7 @@ function exitCar(){
   });
 }
 function enterCar(){
-  click(0.5, 180);
+  sfx('ui', 0.2); sfx('squeak', 0.45);
   fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower'){ playBed('atmo3', 4); if (metCrier){ crimsonOn = true; crimson = 1; } } mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
 }
 function walkStep(dt){
@@ -2413,7 +2413,7 @@ function startAudio(){
   ac = new (window.AudioContext || window.webkitAudioContext)();
   const out = ac.createGain(); out.gain.value = 0.9; out.connect(ac.destination); master = out;
   loadSample('open', 'open.wav');
-  loadSample('door', 'door1.wav'); loadSample('door2', 'door2.wav'); loadSample('lid', 'lid.wav');
+  loadSample('door', 'door1.wav'); loadSample('door2', 'door2.wav'); loadSample('lid', 'lid.wav'); loadSample('squeak', 'squeak.wav'); loadSample('ui', 'ui.wav');
   // the two rain beds: a gentle downpour outside, rain on the car roof inside — level-matched, crossfaded by where you are
   const rainBed = (url, cb) => fetch(url).then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)).then(buf => { const src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.loopStart = 0.06; src.loopEnd = buf.duration - 0.06; const g = ac.createGain(); g.gain.value = 0; src.connect(g); g.connect(out); src.start(0, 0.06); cb(g); }).catch(()=>{});
   rainBed('rainloop_out.mp3', g => rainOut = g); rainBed('rainloop_car.mp3', g => rainCar = g);
