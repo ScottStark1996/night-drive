@@ -100,7 +100,8 @@ function place(th){
   th.obj.position.z = -r;
   th.obj.position.x = th.x + dx + lane;
   if (th.follow) th.obj.rotation.y = -Math.atan(Cp(t+r) - Cp(t)) + (th.obj.userData.yaw || 0);
-  if (leg >= 3 && th.obj.visible && th.obj.userData.civ && r > 20) th.obj.visible = false;   // anything man-made that comes round the loop again stays gone
+  if (leg >= 3 && !th.obj.userData.gone && th.obj.userData.civ && r > 20){ th.obj.userData.gone = true; th.obj.visible = false; }   // anything man-made that comes round the loop again stays gone
+  if (!th.obj.userData.gone) th.obj.visible = r > -70 && r < 240;   // only what's within reach of the lights and the mirrors is drawn — and only lights in range count
 }
 
 // ───────────────────────── MATERIALS / TEXTURES ─────────────────────────
@@ -520,11 +521,11 @@ const leg2Meshes = inst.slice(leg2Start).flatMap(g => g.meshes); leg2Meshes.forE
 let leg = 0;
 function startLegOne(){
   if (leg >= 1) return; leg = 1;
-  for (const th of things){ if (th.obj.userData.civ === 'early' && relOf(th.d) > 30) th.obj.visible = false; }
+  for (const th of things){ if (th.obj.userData.civ === 'early' && relOf(th.d) > 30){ th.obj.userData.gone = true; th.obj.visible = false; } }
 }
 function startLegThree(){   // past the deer: nothing man-made on the road at all, ever again
   if (leg >= 3) return; leg = 3;
-  for (const th of things){ if (th.obj.userData.civ && relOf(th.d) > 20) th.obj.visible = false; }
+  for (const th of things){ if (th.obj.userData.civ && relOf(th.d) > 20){ th.obj.userData.gone = true; th.obj.visible = false; } }
 }
 function startLegTwo(){
   if (leg === 2) return; leg = 2;
@@ -532,8 +533,8 @@ function startLegTwo(){
   leg2Meshes.forEach(m => m.visible = true);
   for (const th of things){
     const c = th.obj.userData.civ; if (!c) continue;
-    if (c === 'pole' && th.obj.userData.idx % 4 !== 0 && relOf(th.d) > 30) th.obj.visible = false;   // most poles gone (only ones already behind you stay)
-    if ((c === 'sign' || c === 'house') && relOf(th.d) > 30) th.obj.visible = false;
+    if (c === 'pole' && th.obj.userData.idx % 4 !== 0 && relOf(th.d) > 30){ th.obj.userData.gone = true; th.obj.visible = false; }   // most poles gone (only ones already behind you stay)
+    if ((c === 'sign' || c === 'house') && relOf(th.d) > 30){ th.obj.userData.gone = true; th.obj.visible = false; }
   }
 }
 // ───────────────────────── THE BOILED PEANUT STAND ─────────────────────────
@@ -1372,19 +1373,28 @@ const trashG = new THREE.Group(); trashG.position.set(16.2, 3.6, 1.0); towerG.ad
   const ac2 = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.022, 10), new THREE.MeshLambertMaterial({color:0xf0ece0})); ac2.position.y = 0.06; ac2.name = 'arr'; arrG.add(ac2);
 }
 // a flashlight, dropped just inside the entrance, still on — the only thing you'll see from the door
-const floorTorch = new THREE.Group(); floorTorch.position.set(13.2, 0.04, -1.6); floorTorch.rotation.y = -0.7; towerG.add(floorTorch);
+const floorTorch = new THREE.Group(); floorTorch.position.set(13.2, 0.04, -1.6); floorTorch.rotation.y = -2.31; towerG.add(floorTorch);   // lying so its beam runs back across the floor toward the stairwell corner
 { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.24, 8), new THREE.MeshLambertMaterial({color:0x3a3a3c})); b.rotation.x = Math.PI/2; floorTorch.add(b);
   const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.06, 8), new THREE.MeshLambertMaterial({color:0x2a2a2c})); hd.rotation.x = Math.PI/2; hd.position.z = -0.14; floorTorch.add(hd);
   const lens = new THREE.Mesh(new THREE.CircleGeometry(0.035, 8), new THREE.MeshBasicMaterial({color:0xfff2c8})); lens.position.z = -0.171; lens.rotation.y = Math.PI; floorTorch.add(lens);
   const glow = new THREE.SpotLight(0xffe8c0, 2.2, 16, 0.42, 0.5, 1.1); glow.position.set(0, 0.02, -0.1); glow.target.position.set(0, -0.3, -10); floorTorch.add(glow); floorTorch.add(glow.target);   // a long throw across the floor
   const fcone = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 2.6, 11, 20, 1, true), beamMat.clone()); fcone.rotation.x = Math.PI/2; fcone.position.set(0, 0.03, -0.18 - 5.5); fcone.renderOrder = 5; floorTorch.add(fcone); floorTorch.userData.cone = fcone; floorTorch.userData.glow = glow;   // and its visible beam, lying along the floor
   floorTorch.traverse(o => o.name = 'torchpick'); }
+// emergency signs over the stairwell opening on each floor, battery backup still just alive: the one thing in here that tells you where to go
+const stairSignTex = txt => textTexP(96, 28, g => { g.fillStyle = '#0a1a0c'; g.fillRect(0,0,96,28); g.fillStyle = '#5ad070'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText(txt, 48, 20); g.fillStyle = 'rgba(0,0,0,0.35)'; for (let i=0;i<40;i++) g.fillRect(Math.random()*96|0, Math.random()*28|0, 2, 1); });
+const upTex = stairSignTex('STAIRS ↑'), downTex = stairSignTex('STAIRS ↓');
+const stairSigns = [];
+FLOORS.forEach((y, k) => {
+  if (k < 3){ const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.32), new THREE.MeshBasicMaterial({map: upTex})); sg.position.set(27, y + 2.65, 10.12); towerG.add(sg); stairSigns.push(sg); }     // over the flight that goes up
+  if (k > 0){ const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.32), new THREE.MeshBasicMaterial({map: downTex})); sg.position.set(25, y + 2.65, 10.12); towerG.add(sg); stairSigns.push(sg); }   // and the one that goes down
+  const sl = new THREE.PointLight(0x5ad070, 0.5, 6, 1.6); sl.position.set(26, y + 2.4, 10.8); sl.layers.enable(1); towerG.add(sl); stairSigns.push(sl);
+});
 // a dead sign on the front
 const towerSign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.8), new THREE.MeshLambertMaterial({map: textTexP(128, 26, g => { g.fillStyle = '#3a3630'; g.fillRect(0,0,128,26); g.fillStyle = '#8a8070'; g.font = 'bold 14px sans-serif'; g.textAlign = 'center'; g.fillText('CO  NTY  REG  ONAL', 64, 19); for (let i=0;i<60;i++){ g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.random()*128|0, Math.random()*26|0, 2, 1); } })})); towerSign.position.set(11.07, 3.9, -3); towerSign.rotation.y = -Math.PI/2; towerG.add(towerSign);
 // vines over the entrance, more bushes at the foot of the walls
 for (let i=0;i<6;i++){ const v = new THREE.Mesh(bushGeo.core, new THREE.MeshLambertMaterial({color: 0x24361e, flatShading:true})); const sc = 0.4 + Math.random()*0.3; v.scale.set(sc, sc*1.6, sc*0.5); v.position.set(10.9, 2.6 + Math.random()*0.8, -5.5 + i*1.0); towerG.add(v); }
 // light: cold moonlight leaking in at the window holes, nothing else — except on the third floor
-for (const y of FLOORS) for (const z of [-8, 0, 8]){ const l = new THREE.PointLight(0x4a5a7a, 0.45, 11, 1.6); l.position.set(12.5, y + 2.2, z); l.layers.enable(1); towerG.add(l); const l2 = new THREE.PointLight(0x4a5a7a, 0.38, 10, 1.6); l2.position.set(27.5, y + 2.2, z); l2.layers.enable(1); towerG.add(l2); }
+for (const y of FLOORS) for (const z of [-7, 7]){ const l = new THREE.PointLight(0x4a5a7a, 0.5, 15, 1.5); l.position.set(12.5, y + 2.2, z); l.layers.enable(1); towerG.add(l); const l2 = new THREE.PointLight(0x4a5a7a, 0.42, 14, 1.5); l2.position.set(27.5, y + 2.2, z); l2.layers.enable(1); towerG.add(l2); }
 const lotLight = new THREE.PointLight(0x4a5a7a, 0.4, 14, 1.6); lotLight.position.set(8, 5, 0); lotLight.layers.enable(1); towerG.add(lotLight);
 towerG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
 // walk collision inside: columns (interior ones), partitions, stairwell walls — the same on every floor
@@ -1437,7 +1447,7 @@ crier.traverse(o => { o.name = 'crier'; o.layers.set(1); o.layers.enable(0); });
 // the thing lighting her: a dropped flashlight on the floor, pointing across her
 const torchBody = tbox(0.05, 0.05, 0.22, M.chrome, 19.6, 7.2 + 0.03, -2.2); torchBody.rotation.y = 0.55; torchBody.name = 'torch';
 const torch = new THREE.SpotLight(0xffe8c0, 1.6, 9, 0.55, 0.5, 1.4); torch.position.set(19.6, 7.2 + 0.05, -2.2); torch.target.position.set(17.2, 7.2 + 0.3, -4.2); torch.layers.enable(1); towerG.add(torch); towerG.add(torch.target);
-let metCrier = false;
+let metCrier = false, towerFloorSeen = 0;
 
 // ───────────────────────── THE DEER ─────────────────────────
 // fur: mottled tan-brown with a darker dorsal band; lathe-built body parts so the silhouette is continuous, not stacked blobs
@@ -2095,7 +2105,7 @@ function tap(e){
       else if (nm === 'drinks'){ inspect('They all have caffeine. Can\u2019t have caffeine.'); }
       else if (nm === 'bathmirror'){ thought('It\u2019s too dark. I can\u2019t see myself.'); }
       else if (nm === 'crier'){ startDialogCrier(); }
-      else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); }
+      else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the green sign'), 3200); }
       else if (nm === 'arr'){ inspect('These are… my emergency antiarrhythmics. For my heart.'); }
       else if (nm === 'vend'){ click(0.25, 180); thought('Can\u2019t. They all have caffeine.'); }
       else if (nm === 'snack'){ inspect('I\u2019m not hungry.'); }
@@ -2145,7 +2155,7 @@ function tap(e){
       else if (stopKind === 'station'){ startLegTwo(); carNozzle.visible = false; liveHose.visible = false; if (liveHose.userData.hn) showNozzle(liveHose.userData.hn, true); liveHose.userData.hn = null; fuelOpen = false; stopKind = 'deer'; stopAt = DEER_D - 6; }
       else if (stopKind === 'deer'){ startLegThree(); stopKind = 'motel'; stopAt = MOTEL_D; }
       else if (stopKind === 'motel'){ leg = Math.max(leg, 4); stopKind = 'tower'; stopAt = TOWER_D; }   // leg four: past the motel the fog closes in for good
-      else { stopKind = 'road'; stopAt = null; }
+      else { leg = Math.max(leg, 5); stopKind = 'road'; stopAt = null; }   // leg five: past the building, the fog closes in further
       mode = 'drive'; departed = true; shifter.rotation.x = 0.55; click(0.4, 240); toast('back on the road');
     }
     return;
@@ -2177,13 +2187,13 @@ function exitCar(){
     mode = 'walk'; ext.visible = true; cab.visible = false; cab.rotation.set(0,0,0); handTorch.visible = hasTorch;
     walker.x = -1.9; walker.z = -0.1; walker.h = 0; yaw = stopKind === 'deer' ? 0.3 : -Math.PI/2; pitch = -0.08;   // by the driver's door; at the deer, looking up the road
     if (stopKind === 'motel') toast('the office is to your right, under the sign');
-    if (stopKind === 'tower') toast('the building is to your right');
+    if (stopKind === 'tower'){ toast('the building is to your right — the way in is under the sign'); playBed('hum', 3); }
     toast('drag to look · joystick / WASD to walk · tap the door handle to get back in');
   });
 }
 function enterCar(){
   click(0.5, 180);
-  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower' && metCrier) crimsonOn = true; mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
+  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower'){ playBed('atmo3', 4); if (metCrier){ crimsonOn = true; crimson = 1; } } mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
 }
 function walkStep(dt){
   // input: joystick or keys, relative to where you're looking
@@ -2358,7 +2368,7 @@ function applyStation(){
   }
 }
 // ── the score: looping atmosphere beds, non-diegetic (they don't care whether you're in the car), crossfaded as the night moves on ──
-const BEDS = { atmo1: 'atmo1.mp3', atmo2: 'atmo2.mp3', atmo3: 'atmo3.mp3', none: null };   // atmo1 until the gas station; atmo2 from there until the deer comes into the lights; silence; atmo3 from the motel onward
+const BEDS = { atmo1: 'atmo1.mp3', atmo2: 'atmo2.mp3', atmo3: 'atmo3.mp3', hum: 'hum.mp3', none: null };   // hum: the machinery drone while you're on foot at the building   // atmo1 until the gas station; atmo2 from there until the deer comes into the lights; silence; atmo3 from the motel onward
 let bedDeerFade = false, bedMotel = false;
 const bedBufs = {}; let bedNow = null, bedName = null;
 function playBed(name, fadeSec){
@@ -2448,7 +2458,7 @@ function updateClock(){
 updateClock();
 
 // ───────────────────────── MAIN LOOP ─────────────────────────
-let last = performance.now(), clockAcc = 0, flickerT = 20, flickerLeft = 0, fogBase = 0.046;
+let frameNo = 0, last = performance.now(), clockAcc = 0, flickerT = 20, flickerLeft = 0, fogBase = 0.046;
 function frame(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   // approach: ease off the gas, drift right into the lot, and stop beside the pump
@@ -2497,7 +2507,7 @@ function frame(now){
   stars.material.opacity = 0.25 + (1 - dusk)*0.75;
 
   // fog that breathes: a slow swell layered with a faster drift, plus the odd dense bank
-  fogBase += (((leg >= 4 ? 0.125 : leg >= 2 ? 0.082 : leg === 1 ? 0.055 : 0.046) + rainLevel*0.012) - fogBase) * Math.min(1, dt*0.03);   // thickens slowly over the first minute of leg two, and again past the motel
+  fogBase += (((leg >= 5 ? 0.123 : leg >= 4 ? 0.1025 : leg >= 2 ? 0.082 : leg === 1 ? 0.055 : 0.046) + rainLevel*0.012) - fogBase) * Math.min(1, dt*0.03);   // thickens slowly over the first minute of leg two, and again past the motel
   const breath = Math.sin(t*0.012) * 0.5 + Math.sin(t*0.031 + 1.7) * 0.3 + Math.sin(t*0.0047 + 4.0) * 0.4;   // -1.2..1.2
   const bank = Math.max(0, Math.sin(t*0.0063 + 2.5) - (leg >= 4 ? 0.6 : 0.86)) * 7 + (leg >= 4 ? Math.max(0, Math.sin(t*0.017 + 0.8) - 0.75) * 3 : 0);   // rare: a thick wall of fog — past the motel, banks come often and roll through in waves
   scene.fog.density = fogBase * (1 + breath*0.35 + bank);
@@ -2532,6 +2542,8 @@ function frame(now){
   }
 
   { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 4.0 * tk; torchSpill.intensity = 0.45 * tk; beamMat.opacity = 0.09 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
+  if (stopKind === 'tower'){ const sk = Math.random() < 0.05 ? 0.3 : 1; for (const ss of stairSigns){ if (ss.isLight) ss.intensity = 0.5*sk; else ss.material.color.setScalar(0.6 + 0.4*sk); }
+    const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1) toast('second floor'); else if (fl === 2) toast('third floor'); else if (fl === 3) toast('top floor'); } }
   if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
   if (stopKind === 'tower' && crierShake){
     const sob = Math.max(0, Math.sin(now*0.0045)) ; const j = Math.sin(now*0.03)*0.012*sob + Math.sin(now*0.071)*0.006;   // breath that catches, then shudders
@@ -2641,10 +2653,10 @@ function frame(now){
     camera.position.set(-0.56, 1.34, 0.18); camera.rotation.set(pitch + bob, yaw, cab.rotation.z);
   }
 
-  renderer.setRenderTarget(rt); renderer.render(scene, mirrorCam);
-  renderer.setRenderTarget(rt2); renderer.render(scene, sideCam);
+  frameNo++;
+  if (mode !== 'walk'){ if (frameNo & 1){ renderer.setRenderTarget(rt); renderer.render(scene, mirrorCam); } else { renderer.setRenderTarget(rt2); renderer.render(scene, sideCam); } }   // one mirror per frame, none on foot
   renderer.setRenderTarget(null); renderer.render(scene, camera);
-  noise();
+  if (frameNo & 1) noise();
   requestAnimationFrame(frame);
 }
 // ── testing: ?skip=station | deer | motel | tower | road  — start a little way before that stop with everything earlier already done
@@ -2660,7 +2672,7 @@ function frame(now){
     if (done.includes('station')){ talked = true; fueled = true; startLegTwo(); startBed = 'atmo2'; }
     if (done.includes('deer')){ deerSeen = true; deerCleared = true; raining = true; rainLevel = 1; startLegThree(); startBed = 'none'; bedDeerFade = true; }
     if (done.includes('motel')){ talkedClerk = true; leg = Math.max(leg, 4); startBed = 'atmo3'; bedMotel = true; }
-    if (done.includes('tower')){ metCrier = true; hasTorch = true; crimsonOn = true; crimson = 1; }
+    if (done.includes('tower')){ metCrier = true; hasTorch = true; crimsonOn = true; crimson = 1; leg = Math.max(leg, 5); }
     if (done.includes('deer')) setTimeout(()=>{ if (deerThing) deerThing.x = 1.55 + 4; }, 30);   // the deer is already off the road
     toast('skipped to: ' + sk);
   }
