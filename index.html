@@ -1278,6 +1278,9 @@ guest.traverse(o => o.name = 'guest');
 motelG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
 
 // ───────────────────────── THE ABANDONED BUILDING ─────────────────────────
+// a visible light-beam material (used by the flashlights): a faint cone of lit dust, brightest at the lens, fading out along its length
+const beamTex = (()=>{ const c = document.createElement('canvas'); c.width = 8; c.height = 64; const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,240,210,0.9)'); gr.addColorStop(0.25, 'rgba(255,240,210,0.42)'); gr.addColorStop(0.7, 'rgba(255,240,210,0.12)'); gr.addColorStop(1, 'rgba(255,240,210,0)'); g.fillStyle = gr; g.fillRect(0,0,8,64); return new THREE.CanvasTexture(c); })();
+const beamMat = new THREE.MeshBasicMaterial({map: beamTex, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide, fog:false});
 // Stand-local coords: x right of the road, z = -(d - TOWER_D). A four-storey concrete frame, left to the weather for years.
 // Footprint x 11..29, z -12..12. Floors at y 0 / 3.6 / 7.2 / 10.8, roof at 14.4. Stairwell in the back corner, x 24..28, z 2..10.
 const towerG = new THREE.Group(); addThing(towerG, TOWER_D, 0, true);
@@ -1373,7 +1376,8 @@ const floorTorch = new THREE.Group(); floorTorch.position.set(13.2, 0.04, -1.6);
 { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.24, 8), new THREE.MeshLambertMaterial({color:0x3a3a3c})); b.rotation.x = Math.PI/2; floorTorch.add(b);
   const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.06, 8), new THREE.MeshLambertMaterial({color:0x2a2a2c})); hd.rotation.x = Math.PI/2; hd.position.z = -0.14; floorTorch.add(hd);
   const lens = new THREE.Mesh(new THREE.CircleGeometry(0.035, 8), new THREE.MeshBasicMaterial({color:0xfff2c8})); lens.position.z = -0.171; lens.rotation.y = Math.PI; floorTorch.add(lens);
-  const glow = new THREE.SpotLight(0xffe8c0, 1.2, 7, 0.6, 0.6, 1.4); glow.position.set(0, 0, -0.1); glow.target.position.set(0, 0, -3); floorTorch.add(glow); floorTorch.add(glow.target);
+  const glow = new THREE.SpotLight(0xffe8c0, 2.2, 16, 0.42, 0.5, 1.1); glow.position.set(0, 0.02, -0.1); glow.target.position.set(0, -0.3, -10); floorTorch.add(glow); floorTorch.add(glow.target);   // a long throw across the floor
+  const fcone = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 2.6, 11, 20, 1, true), beamMat.clone()); fcone.rotation.x = Math.PI/2; fcone.position.set(0, 0.03, -0.18 - 5.5); fcone.renderOrder = 5; floorTorch.add(fcone); floorTorch.userData.cone = fcone; floorTorch.userData.glow = glow;   // and its visible beam, lying along the floor
   floorTorch.traverse(o => o.name = 'torchpick'); }
 // a dead sign on the front
 const towerSign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.8), new THREE.MeshLambertMaterial({map: textTexP(128, 26, g => { g.fillStyle = '#3a3630'; g.fillRect(0,0,128,26); g.fillStyle = '#8a8070'; g.font = 'bold 14px sans-serif'; g.textAlign = 'center'; g.fillText('CO  NTY  REG  ONAL', 64, 19); for (let i=0;i<60;i++){ g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.random()*128|0, Math.random()*26|0, 2, 1); } })})); towerSign.position.set(11.07, 3.9, -3); towerSign.rotation.y = -Math.PI/2; towerG.add(towerSign);
@@ -1959,6 +1963,9 @@ const handTorch = new THREE.Group(); handTorch.position.set(0.14, -0.24, -0.48);
   handTorch.traverse(o => o.layers.set(0)); }
 const torchBeam = new THREE.SpotLight(0xfff0d8, 0, 26, 0.24, 0.45, 1.0); torchBeam.position.set(0.14, -0.22, -0.62); torchBeam.target.position.set(0.1, -0.5, -20); camera.add(torchBeam); camera.add(torchBeam.target); torchBeam.layers.enable(1);   // a tight cone with a bright centre and a soft rim, from the lens
 const torchSpill = new THREE.PointLight(0xfff0d8, 0, 3.5, 1.6); torchSpill.position.set(0.14, -0.22, -0.7); camera.add(torchSpill); torchSpill.layers.enable(1);                       // the faint spill round the torch itself
+const beamCone = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 2.3, 9, 20, 1, true), beamMat); beamCone.rotation.x = Math.PI/2; beamCone.position.set(0.14, -0.22 - 0.0, -0.64 - 4.5); beamCone.renderOrder = 5; camera.add(beamCone);   // narrow end at the lens, flaring forward
+const beamCore = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.9, 7, 14, 1, true), beamMat); beamCore.rotation.x = Math.PI/2; beamCore.position.set(0.14, -0.22, -0.64 - 3.5); beamCore.renderOrder = 5; camera.add(beamCore);   // a brighter core down the middle
+beamCone.layers.set(0); beamCore.layers.set(0);
 let hasTorch = false;
 const handNozzle = new THREE.Group(); handNozzle.position.set(0.3, -0.26, -0.5); handNozzle.rotation.set(0.15, -0.5, -0.1); handNozzle.visible = false; camera.add(handNozzle);
 handNozzle.add(makeNozzle());
@@ -2524,7 +2531,8 @@ function frame(now){
     f.li.intensity = f.base * k; f.tube.material.color.setRGB(0.18 + 0.44*k, 0.22 + 0.5*k, 0.2 + 0.46*k);
   }
 
-  { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 3.2 * tk; torchSpill.intensity = 0.35 * tk; }
+  { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 3.2 * tk; torchSpill.intensity = 0.35 * tk; beamMat.opacity = 0.16 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
+  if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.2*bl; }   // the dropped one, blinking on the floor
   if (stopKind === 'tower' && crierShake){
     const sob = Math.max(0, Math.sin(now*0.0045)) ; const j = Math.sin(now*0.03)*0.012*sob + Math.sin(now*0.071)*0.006;   // breath that catches, then shudders
     crierShake.scale.set(1 + j, 1, 1 + j*0.5); headC5.rotation.x = 0.95 + j*2.5; headC5.rotation.z = Math.sin(now*0.0021)*0.08;
