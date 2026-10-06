@@ -1349,9 +1349,10 @@ for (let k=0; k<3; k++){
 // interior: a few partition walls, rubble, puddles, hanging wires, a mattress, a chair
 tbox(0.2, 3.3, 7, concDark, 17, 1.65, 7.5); tbox(6, 3.3, 0.2, concDark, 14, 1.65, 4);          // ground floor partitions, broken off
 tbox(0.2, 3.3, 5, concDark, 20, 3.6 + 1.65, -8); tbox(0.2, 2.1, 4, concDark, 14, 7.2 + 1.05, 6); tbox(5, 3.3, 0.2, concDark, 19.5, 7.2 + 1.65, 8);
-for (let i=0;i<40;i++){ const f = FLOORS[i % 4]; const r = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.25 + Math.random()*0.5, 6, 4), 0.12), rubbleM); r.scale.y = 0.45; r.position.set(12 + Math.random()*16, f + 0.05, -11 + Math.random()*22); r.rotation.y = Math.random()*6.28; towerG.add(r); }
-for (let i=0;i<14;i++){ const f = FLOORS[i % 4]; const pd = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random()*1.2, 9), puddleM); pd.rotation.x = -Math.PI/2; pd.position.set(12 + Math.random()*16, f + 0.012, -11 + Math.random()*22); pd.scale.x = 1.6; towerG.add(pd); }
-for (let i=0;i<10;i++){ const f = FLOORS[1 + (i % 3)]; const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1 + Math.random()*1.6, 4), blackM); wire.position.set(12 + Math.random()*16, f - 0.3 - 0.7, -11 + Math.random()*22); wire.rotation.z = (Math.random()-0.5)*0.4; towerG.add(wire); }
+const offStairs = () => { let x, z; do { x = 12 + Math.random()*16; z = -11 + Math.random()*22; } while (x > 23.5 && z > 1.5 && z < 10.5); return [x, z]; };   // never in the stairwell, where there's no floor to sit on
+for (let i=0;i<40;i++){ const f = FLOORS[i % 4]; const [x, z] = offStairs(); const r = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.25 + Math.random()*0.5, 6, 4), 0.12), rubbleM); r.scale.y = 0.45; r.position.set(x, f + 0.05, z); r.rotation.y = Math.random()*6.28; towerG.add(r); }
+for (let i=0;i<14;i++){ const f = FLOORS[i % 4]; const [px, pz] = offStairs(); const pd = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random()*1.2, 9), puddleM); pd.rotation.x = -Math.PI/2; pd.position.set(px, f + 0.012, pz); pd.scale.x = 1.6; towerG.add(pd); }
+for (let i=0;i<10;i++){ const f = FLOORS[1 + (i % 3)]; const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1 + Math.random()*1.6, 4), blackM); const [wx, wz] = offStairs(); wire.position.set(wx, f - 0.3 - 0.7, wz); wire.rotation.z = (Math.random()-0.5)*0.4; towerG.add(wire); }
 tbox(1.0, 0.2, 1.9, new THREE.MeshLambertMaterial({color:0x6a6050}), 14, 3.6 + 0.1, -9);                                   // a mattress, floor two
 { const ch = new THREE.Group(); ch.position.set(21, 7.2, -9); ch.rotation.set(0, 0.6, Math.PI/2 - 0.2); towerG.add(ch); for (const [x,z] of [[-0.18,-0.18],[0.18,-0.18],[-0.18,0.18],[0.18,0.18]]) tbox(0.04, 0.45, 0.04, rust, x, 0.22, z, ch); tbox(0.44, 0.04, 0.44, rust, 0, 0.46, 0, ch); tbox(0.44, 0.4, 0.04, rust, 0, 0.68, -0.2, ch); }   // a tipped-over chair, floor three
 // second floor: a heap of trash against a column, and a pill bottle in it
@@ -1951,12 +1952,13 @@ const fuelCap = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 10
 const carNozzle = makeNozzle(); carNozzle.position.set(1.08, 0.74, 1.52); carNozzle.rotation.y = Math.PI; carNozzle.rotation.z = -0.2; carNozzle.visible = false; ext.add(carNozzle);   // spout into the filler
 carNozzle.traverse(o => o.name = 'carnozzle');
 // the nozzle in your hand (child of the camera) and a live hose back to the pump
-const handTorch = new THREE.Group(); handTorch.position.set(0.34, -0.3, -0.5); handTorch.rotation.set(0.1, -0.2, 0); handTorch.visible = false; camera.add(handTorch);
+const handTorch = new THREE.Group(); handTorch.position.set(0.14, -0.24, -0.48); handTorch.rotation.set(0.04, 0.06, 0.15); handTorch.visible = false; camera.add(handTorch);   // held out in front, a little right of centre, pointing where you look
 { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.026, 0.22, 8), new THREE.MeshLambertMaterial({color:0x3a3a3c})); b.rotation.x = Math.PI/2; handTorch.add(b);
   const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.028, 0.06, 8), new THREE.MeshLambertMaterial({color:0x2a2a2c})); hd.rotation.x = Math.PI/2; hd.position.z = -0.13; handTorch.add(hd);
   const grip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.08, 0.12), new THREE.MeshLambertMaterial({color:0x9a7a62})); grip.position.set(0, -0.02, 0.04); handTorch.add(grip);   // your hand round it
   handTorch.traverse(o => o.layers.set(0)); }
-const torchBeam = new THREE.SpotLight(0xfff0d8, 0, 22, 0.42, 0.55, 1.1); torchBeam.position.set(0.3, -0.25, -0.3); torchBeam.target.position.set(0, -0.6, -12); camera.add(torchBeam); camera.add(torchBeam.target); torchBeam.layers.enable(1);
+const torchBeam = new THREE.SpotLight(0xfff0d8, 0, 26, 0.24, 0.45, 1.0); torchBeam.position.set(0.14, -0.22, -0.62); torchBeam.target.position.set(0.1, -0.5, -20); camera.add(torchBeam); camera.add(torchBeam.target); torchBeam.layers.enable(1);   // a tight cone with a bright centre and a soft rim, from the lens
+const torchSpill = new THREE.PointLight(0xfff0d8, 0, 3.5, 1.6); torchSpill.position.set(0.14, -0.22, -0.7); camera.add(torchSpill); torchSpill.layers.enable(1);                       // the faint spill round the torch itself
 let hasTorch = false;
 const handNozzle = new THREE.Group(); handNozzle.position.set(0.3, -0.26, -0.5); handNozzle.rotation.set(0.15, -0.5, -0.1); handNozzle.visible = false; camera.add(handNozzle);
 handNozzle.add(makeNozzle());
@@ -2522,7 +2524,7 @@ function frame(now){
     f.li.intensity = f.base * k; f.tube.material.color.setRGB(0.18 + 0.44*k, 0.22 + 0.5*k, 0.2 + 0.46*k);
   }
 
-  torchBeam.intensity = (hasTorch && mode === 'walk') ? 2.2 * (Math.random() < 0.02 ? 0.7 : 1) : 0;
+  { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 3.2 * tk; torchSpill.intensity = 0.35 * tk; }
   if (stopKind === 'tower' && crierShake){
     const sob = Math.max(0, Math.sin(now*0.0045)) ; const j = Math.sin(now*0.03)*0.012*sob + Math.sin(now*0.071)*0.006;   // breath that catches, then shudders
     crierShake.scale.set(1 + j, 1, 1 + j*0.5); headC5.rotation.x = 0.95 + j*2.5; headC5.rotation.z = Math.sin(now*0.0021)*0.08;
