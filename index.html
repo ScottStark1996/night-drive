@@ -1293,7 +1293,7 @@ const rubbleM = new THREE.MeshLambertMaterial({color:0x4e4b45, flatShading:true}
 const puddleM = new THREE.MeshLambertMaterial({color:0x101418});
 // the lot: cracked, weeds up through it
 const towerLot = new THREE.Mesh(new THREE.PlaneGeometry(10, 30), asphalt); towerLot.rotation.x = -Math.PI/2; towerLot.position.set(6.5, 0.01, 0); towerG.add(towerLot);
-for (let i=0;i<14;i++){ const b = new THREE.Mesh(bushGeo, new THREE.MeshLambertMaterial({color: 0x2a3a22})); const s = 0.5 + Math.random()*0.6; b.scale.set(s, s*0.8, s); b.position.set(3 + Math.random()*8, 0, -15 + Math.random()*30); b.rotation.y = Math.random()*6.28; towerG.add(b); }
+for (let i=0;i<14;i++){ const b = new THREE.Mesh(bushGeo.core, new THREE.MeshLambertMaterial({color: 0x2a3a22, flatShading:true})); const s = 0.5 + Math.random()*0.6; b.scale.set(s, s*0.8, s); b.position.set(3 + Math.random()*8, 0, -15 + Math.random()*30); b.rotation.y = Math.random()*6.28; towerG.add(b); }
 // slabs: ground, then three upper floors each with the stairwell cut out, and the roof
 tbox(18, 0.3, 24, concSlab, 20, -0.15, 0);
 for (const y of [3.6, 7.2, 10.8, 14.4]){
@@ -1362,7 +1362,7 @@ const trashG = new THREE.Group(); trashG.position.set(16.2, 3.6, 1.0); towerG.ad
 // a dead sign on the front
 const towerSign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.8), new THREE.MeshLambertMaterial({map: textTexP(128, 26, g => { g.fillStyle = '#3a3630'; g.fillRect(0,0,128,26); g.fillStyle = '#8a8070'; g.font = 'bold 14px sans-serif'; g.textAlign = 'center'; g.fillText('CO  NTY  REG  ONAL', 64, 19); for (let i=0;i<60;i++){ g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.random()*128|0, Math.random()*26|0, 2, 1); } })})); towerSign.position.set(11.07, 3.9, -3); towerSign.rotation.y = -Math.PI/2; towerG.add(towerSign);
 // vines over the entrance, more bushes at the foot of the walls
-for (let i=0;i<6;i++){ const v = new THREE.Mesh(bushGeo, new THREE.MeshLambertMaterial({color: 0x24361e})); const sc = 0.4 + Math.random()*0.3; v.scale.set(sc, sc*1.6, sc*0.5); v.position.set(10.9, 2.6 + Math.random()*0.8, -5.5 + i*1.0); towerG.add(v); }
+for (let i=0;i<6;i++){ const v = new THREE.Mesh(bushGeo.core, new THREE.MeshLambertMaterial({color: 0x24361e, flatShading:true})); const sc = 0.4 + Math.random()*0.3; v.scale.set(sc, sc*1.6, sc*0.5); v.position.set(10.9, 2.6 + Math.random()*0.8, -5.5 + i*1.0); towerG.add(v); }
 // light: cold moonlight leaking in at the window holes, nothing else — except on the third floor
 for (const y of FLOORS) for (const z of [-8, 0, 8]){ const l = new THREE.PointLight(0x3a4a6a, 0.28, 9, 1.8); l.position.set(12.5, y + 2.2, z); l.layers.enable(1); towerG.add(l); const l2 = new THREE.PointLight(0x3a4a6a, 0.22, 8, 1.8); l2.position.set(27.5, y + 2.2, z); l2.layers.enable(1); towerG.add(l2); }
 const lotLight = new THREE.PointLight(0x4a5a7a, 0.4, 14, 1.6); lotLight.position.set(8, 5, 0); lotLight.layers.enable(1); towerG.add(lotLight);
