@@ -1292,13 +1292,13 @@ function concTex(base, streaks){ const tx = textTexP(64, 64, g => {
   for (let i=0;i<streaks;i++){ g.fillStyle = `rgba(${20+Math.random()*30|0},${18+Math.random()*20|0},${10+Math.random()*10|0},${0.25+Math.random()*0.3})`; const x = Math.random()*64|0; g.fillRect(x, Math.random()*20|0, 1 + (Math.random()<0.3?1:0), 20 + Math.random()*44|0); }   // rust and water streaks running down
   for (let i=0;i<6;i++){ g.fillStyle = 'rgba(0,0,0,0.25)'; const x = Math.random()*64|0, y = Math.random()*64|0; g.fillRect(x, y, 1, 3 + Math.random()*10|0); }   // hairline cracks
 }); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; return tx; }
-const conc = new THREE.MeshLambertMaterial({map: (()=>{ const t = concTex('#6a675f', 14); t.repeat.set(2, 2); return t; })()});
-const concSlab = new THREE.MeshLambertMaterial({map: (()=>{ const t = concTex('#55534d', 4); t.repeat.set(6, 8); return t; })()});
-const concDark = new THREE.MeshLambertMaterial({map: (()=>{ const t = concTex('#45433f', 20); t.repeat.set(1, 3); return t; })()});
-const rubbleM = new THREE.MeshLambertMaterial({color:0x4e4b45, flatShading:true});
-const puddleM = new THREE.MeshLambertMaterial({color:0x101418});
+const conc = new THREE.MeshPhongMaterial({map: (()=>{ const t = concTex('#6a675f', 14); t.repeat.set(2, 2); return t; })(), shininess: 4, specular: 0x141414});   // Phong: lit per pixel, so the flashlight pools on a wall wherever it lands
+const concSlab = new THREE.MeshPhongMaterial({map: (()=>{ const t = concTex('#55534d', 4); t.repeat.set(6, 8); return t; })(), shininess: 6, specular: 0x1a1a1a});
+const concDark = new THREE.MeshPhongMaterial({map: (()=>{ const t = concTex('#45433f', 20); t.repeat.set(1, 3); return t; })(), shininess: 4, specular: 0x141414});
+const rubbleM = new THREE.MeshPhongMaterial({color:0x4e4b45, flatShading:true, shininess: 3, specular: 0x101010});
+const puddleM = new THREE.MeshPhongMaterial({color:0x101418, shininess: 60, specular: 0x667080});   // wet: catches the beam
 // the lot: cracked, weeds up through it
-const towerLot = new THREE.Mesh(new THREE.PlaneGeometry(10, 30), asphalt); towerLot.rotation.x = -Math.PI/2; towerLot.position.set(6.5, 0.01, 0); towerG.add(towerLot);
+const towerLot = new THREE.Mesh(new THREE.PlaneGeometry(10, 30, 10, 30), asphalt);   // subdivided so the lights pool on it towerLot.rotation.x = -Math.PI/2; towerLot.position.set(6.5, 0.01, 0); towerG.add(towerLot);
 for (let i=0;i<14;i++){ const b = new THREE.Mesh(bushGeo.core, new THREE.MeshLambertMaterial({color: 0x2a3a22, flatShading:true})); const s = 0.5 + Math.random()*0.6; b.scale.set(s, s*0.8, s); b.position.set(3 + Math.random()*8, 0, -15 + Math.random()*30); b.rotation.y = Math.random()*6.28; towerG.add(b); }
 // slabs: ground, then three upper floors each with the stairwell cut out, and the roof
 tbox(18, 0.3, 24, concSlab, 20, -0.15, 0);
@@ -1961,7 +1961,7 @@ const handTorch = new THREE.Group(); handTorch.position.set(0.14, -0.24, -0.48);
   const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.028, 0.06, 8), new THREE.MeshLambertMaterial({color:0x2a2a2c})); hd.rotation.x = Math.PI/2; hd.position.z = -0.13; handTorch.add(hd);
   const grip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.08, 0.12), new THREE.MeshLambertMaterial({color:0x9a7a62})); grip.position.set(0, -0.02, 0.04); handTorch.add(grip);   // your hand round it
   handTorch.traverse(o => o.layers.set(0)); }
-const torchBeam = new THREE.SpotLight(0xfff0d8, 0, 26, 0.24, 0.45, 1.0); torchBeam.position.set(0.14, -0.22, -0.62); torchBeam.target.position.set(0.1, -0.5, -20); camera.add(torchBeam); camera.add(torchBeam.target); torchBeam.layers.enable(1);   // a tight cone with a bright centre and a soft rim, from the lens
+const torchBeam = new THREE.SpotLight(0xfff0d8, 0, 26, 0.3, 0.5, 1.0); torchBeam.position.set(0.14, -0.22, -0.62); torchBeam.target.position.set(0.1, -0.5, -20); camera.add(torchBeam); camera.add(torchBeam.target); torchBeam.layers.enable(1);   // a tight cone with a bright centre and a soft rim, from the lens
 const torchSpill = new THREE.PointLight(0xfff0d8, 0, 3.5, 1.6); torchSpill.position.set(0.14, -0.22, -0.7); camera.add(torchSpill); torchSpill.layers.enable(1);                       // the faint spill round the torch itself
 const beamCone = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 2.3, 9, 20, 1, true), beamMat); beamCone.rotation.x = Math.PI/2; beamCone.position.set(0.14, -0.22 - 0.0, -0.64 - 4.5); beamCone.renderOrder = 5; camera.add(beamCone);   // narrow end at the lens, flaring forward
 const beamCore = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.9, 7, 14, 1, true), beamMat); beamCore.rotation.x = Math.PI/2; beamCore.position.set(0.14, -0.22, -0.64 - 3.5); beamCore.renderOrder = 5; camera.add(beamCore);   // a brighter core down the middle
@@ -2531,8 +2531,8 @@ function frame(now){
     f.li.intensity = f.base * k; f.tube.material.color.setRGB(0.18 + 0.44*k, 0.22 + 0.5*k, 0.2 + 0.46*k);
   }
 
-  { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 3.2 * tk; torchSpill.intensity = 0.35 * tk; beamMat.opacity = 0.16 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
-  if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.2*bl; }   // the dropped one, blinking on the floor
+  { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 4.0 * tk; torchSpill.intensity = 0.45 * tk; beamMat.opacity = 0.09 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
+  if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
   if (stopKind === 'tower' && crierShake){
     const sob = Math.max(0, Math.sin(now*0.0045)) ; const j = Math.sin(now*0.03)*0.012*sob + Math.sin(now*0.071)*0.006;   // breath that catches, then shudders
     crierShake.scale.set(1 + j, 1, 1 + j*0.5); headC5.rotation.x = 0.95 + j*2.5; headC5.rotation.z = Math.sin(now*0.0021)*0.08;
