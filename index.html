@@ -204,6 +204,9 @@ function headlight(x){
 }
 const headL = headlight(-0.75), headR = headlight(0.75);
 const HEAD_I = 2.8;        // normal headlight intensity
+// after the building, the car's lights come back wrong: every bulb a dark crimson
+let crimsonOn = false, crimson = 0, startBed = 'atmo1';
+const WARM_HEAD = new THREE.Color(0xffe9b8), RED_HEAD = new THREE.Color(0x9a0c12), WARM_DASH = new THREE.Color(0xff9a4a), RED_DASH = new THREE.Color(0x8a0810), WARM_DOME = new THREE.Color(0xffb060), RED_DOME = new THREE.Color(0xa01018), WARM_LENS = new THREE.Color(0xfff2d0), RED_LENS = new THREE.Color(0x5a0608);
 const dashGlow = new THREE.PointLight(0xff9a4a, 0.55, 3.2); dashGlow.position.set(-0.1, 0.95, -0.95); scene.add(dashGlow);
 
 // ───────────────────────── WORLD OBJECTS ─────────────────────────
@@ -2171,7 +2174,7 @@ function exitCar(){
 }
 function enterCar(){
   click(0.5, 180);
-  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
+  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower' && metCrier) crimsonOn = true; mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
 }
 function walkStep(dt){
   // input: joystick or keys, relative to where you're looking
@@ -2395,7 +2398,7 @@ function startAudio(){
   // the two rain beds: a gentle downpour outside, rain on the car roof inside — level-matched, crossfaded by where you are
   const rainBed = (url, cb) => fetch(url).then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)).then(buf => { const src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.loopStart = 0.06; src.loopEnd = buf.duration - 0.06; const g = ac.createGain(); g.gain.value = 0; src.connect(g); g.connect(out); src.start(0, 0.06); cb(g); }).catch(()=>{});
   rainBed('rainloop_out.mp3', g => rainOut = g); rainBed('rainloop_car.mp3', g => rainCar = g);
-  playBed('atmo1', 4);   // the score: a low atmosphere under everything from the first mile, until the gas station is behind you loadSample('locked', 'locked.wav');   // door1: a lighter latch for the store / shack / restroom doors; door2: the heavier thunk of a car door and the 103 slam
+  playBed(startBed, 4);   // the score: a low atmosphere under everything from the first mile, until the gas station is behind you loadSample('locked', 'locked.wav');   // door1: a lighter latch for the store / shack / restroom doors; door2: the heavier thunk of a car door and the 103 slam
   // engine drone
   const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 170;
   const g = ac.createGain(); g.gain.value = 0.07; f.connect(g); g.connect(out); engineGain = g;
@@ -2497,7 +2500,10 @@ function frame(now){
   if (flickerLeft > 0 && Math.random() < 0.28){ hl = 0.15 + Math.random()*0.5; flickerLeft--; }
   if (Math.random() < 0.004) hl *= 0.6;                                                                  // lone single-frame dip
   const sway = 1 + Math.sin(t*2.7)*0.015;
-  headL.intensity = HEAD_I * hl * sway; headR.intensity = HEAD_I * (hl < 1 ? 0.6 + hl*0.4 : 1) * sway;   // the right one is a bit healthier
+  crimson += ((crimsonOn ? 1 : 0) - crimson) * Math.min(1, dt*0.35);
+  const hk = 1 - crimson*0.3;                                                                            // the red is a little weaker than the white was
+  headL.intensity = HEAD_I * hl * sway * hk; headR.intensity = HEAD_I * (hl < 1 ? 0.6 + hl*0.4 : 1) * sway * hk;   // the right one is a bit healthier
+  if (crimson > 0.001 || headL.color.r < 0.99){ headL.color.lerpColors(WARM_HEAD, RED_HEAD, crimson); headR.color.copy(headL.color); dashGlow.color.lerpColors(WARM_DASH, RED_DASH, crimson); lampLens.color.lerpColors(WARM_LENS, RED_LENS, crimson); }
 
   // glovebox door swings down on its hinge
   gloveAngle += ((gloveOpen ? 1.45 : 0) - gloveAngle) * Math.min(1, dt*6);
@@ -2610,7 +2616,8 @@ function frame(now){
   domeLevel += ((domeOn ? 1 : 0) - domeLevel) * Math.min(1, dt*9);
   const flicker = 1 - (Math.random() < 0.03 ? Math.random()*0.35 : 0);
   domeLight.intensity = domeLevel * 1.8 * flicker;
-  domeLensMat.color.setRGB(0.23 + domeLevel*0.77, 0.21 + domeLevel*0.5, 0.15 + domeLevel*0.15);
+  domeLight.color.lerpColors(WARM_DOME, RED_DOME, crimson);
+  domeLensMat.color.setRGB(0.23 + domeLevel*0.77, 0.21 + domeLevel*0.5*(1 - crimson*0.9), 0.15 + domeLevel*0.15*(1 - crimson));
   domeSwitch.rotation.x = domeOn ? 0.5 : -0.5;
 
   // subtle car bob / lean
@@ -2629,6 +2636,24 @@ function frame(now){
   renderer.setRenderTarget(null); renderer.render(scene, camera);
   noise();
   requestAnimationFrame(frame);
+}
+// ── testing: ?skip=station | deer | motel | tower | road  — start a little way before that stop with everything earlier already done
+{
+  const sk = new URLSearchParams(location.search).get('skip');
+  const order = ['peanut', 'station', 'deer', 'motel', 'tower', 'road'];
+  const idx = order.indexOf(sk);
+  if (idx > 0){
+    const done = order.slice(0, idx);
+    const D = {station: STOP_D, deer: DEER_D - 6, motel: MOTEL_D, tower: TOWER_D, road: TOWER_D + 200}[sk];
+    stopKind = sk; stopAt = sk === 'road' ? null : D; t = D - 90;   // position first, so the leg changes hide the right things
+    if (done.includes('peanut')){ talkedWoman = true; startLegOne(); dusk = 0; }
+    if (done.includes('station')){ talked = true; fueled = true; startLegTwo(); startBed = 'atmo2'; }
+    if (done.includes('deer')){ deerSeen = true; deerCleared = true; raining = true; rainLevel = 1; startLegThree(); startBed = 'none'; bedDeerFade = true; }
+    if (done.includes('motel')){ talkedClerk = true; leg = Math.max(leg, 4); startBed = 'atmo3'; bedMotel = true; }
+    if (done.includes('tower')){ metCrier = true; hasTorch = true; crimsonOn = true; crimson = 1; }
+    if (done.includes('deer')) setTimeout(()=>{ if (deerThing) deerThing.x = 1.55 + 4; }, 30);   // the deer is already off the road
+    toast('skipped to: ' + sk);
+  }
 }
 resize();
 requestAnimationFrame(frame);
