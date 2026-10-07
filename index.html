@@ -1307,7 +1307,7 @@ const rubbleM = new THREE.MeshPhongMaterial({color:0x4e4b45, flatShading:true, s
 const puddleM = new THREE.MeshPhongMaterial({color:0x101418, shininess: 60, specular: 0x667080});   // wet: catches the beam
 // the lot: cracked, weeds up through it
 const towerLot = new THREE.Mesh(new THREE.PlaneGeometry(10, 30, 10, 30), asphalt);   // subdivided so the lights pool on it towerLot.rotation.x = -Math.PI/2; towerLot.position.set(6.5, 0.01, 0); towerG.add(towerLot);
-for (let i=0;i<14;i++){ const b = new THREE.Mesh(bushGeo.core, new THREE.MeshLambertMaterial({color: 0x2a3a22, flatShading:true})); const s = 0.5 + Math.random()*0.6; b.scale.set(s, s*0.8, s); b.position.set(3 + Math.random()*8, 0, -15 + Math.random()*30); b.rotation.y = Math.random()*6.28; towerG.add(b); }
+for (let i=0;i<14;i++){ const b = new THREE.Mesh(bushGeo.core, new THREE.MeshLambertMaterial({color: 0x2a3a22, flatShading:true})); const s = 0.5 + Math.random()*0.6; b.scale.set(s, s*0.8, s); let wx, wz; do { wx = 3 + Math.random()*8; wz = -15 + Math.random()*30; } while (wx < 9 && Math.abs(wz) < 3.6); b.position.set(wx, 0, wz); b.rotation.y = Math.random()*6.28; towerG.add(b); }   // not where the car parks
 // slabs: ground; the second floor with the back-right stairwell cut out; the third with the front-left one cut out; a solid roof
 tbox(18, 0.3, 24, concSlab, 20, -0.15, 0);
 { const y = 3.6;   // hole x 24..28, z 2..10
@@ -1463,6 +1463,28 @@ crier.traverse(o => { o.name = 'crier'; o.layers.set(1); o.layers.enable(0); });
 const torchBody = tbox(0.05, 0.05, 0.22, M.chrome, 24.7, 7.2 + 0.03, -1.4); torchBody.rotation.y = -0.9; torchBody.name = 'torch';
 const torch = new THREE.SpotLight(0xffe8c0, 1.6, 9, 0.55, 0.5, 1.4); torch.position.set(24.7, 7.2 + 0.05, -1.4); torch.target.position.set(22.2, 7.2 + 0.3, 0.8); torch.layers.enable(1); towerG.add(torch); towerG.add(torch.target);
 let metCrier = false, towerFloorSeen = 0;
+// the runner: her, or something wearing her — a dark figure that bolts across the second floor the moment you reach it, and is gone
+const runner = new THREE.Group(); runner.visible = false; towerG.add(runner);
+let runnerT = -1, runnerFrom = new THREE.Vector3(), runnerTo = new THREE.Vector3(), runnerLegs = [];
+{
+  const dk = new THREE.MeshLambertMaterial({color:0x201a22}), sk = new THREE.MeshLambertMaterial({color:0x6a5648});
+  const w = (m, x, y, z) => { m.position.set(x, y, z); runner.add(m); return m; };
+  for (const sx of [-1, 1]){ const leg = new THREE.Group(); leg.position.set(sx*0.12, 0.85, 0); runner.add(leg); const th = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.85, 7), sk); th.position.y = -0.42; leg.add(th); runnerLegs.push(leg); }
+  w(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.5, 8), dk), 0, 1.0, 0);                                                     // skirt, flaring
+  w(new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.5, 8), dk), 0, 1.45, 0);                                                   // torso
+  for (const sx of [-1, 1]){ const arm = w(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.55, 6), sk), sx*0.24, 1.35, 0); arm.rotation.x = sx*0.9; arm.rotation.z = sx*0.15; }
+  w(new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.24, 0.21), [hairM5, hairM5, hairM5, sk, hairM5, hairM5]), 0, 1.84, 0);               // head — hair over everything, no face to see
+  w(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.14), hairM5), 0, 1.6, -0.12);                                                   // hair streaming behind (a group's lookAt points its +z at the target, so behind is -z)
+  runner.traverse(o => { o.layers.set(1); o.layers.enable(0); });
+}
+function startRunner(){ // across your view, left to right, about six metres out, then into the dark
+  const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)), right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  const base = new THREE.Vector3(walker.x, 0, walker.z).addScaledVector(fwd, 6.5);
+  runnerFrom.copy(base).addScaledVector(right, -9); runnerTo.copy(base).addScaledVector(right, 9);
+  const lf = towerG.worldToLocal(runnerFrom.clone()), lt = towerG.worldToLocal(runnerTo.clone()); runnerFrom.copy(lf); runnerTo.copy(lt); runnerFrom.y = runnerTo.y = walker.h;
+  runner.position.copy(runnerFrom); runner.lookAt(runnerTo.x, runnerTo.y, runnerTo.z); runner.visible = true; runnerT = 0;
+  if (ac && samples.run){ const src = ac.createBufferSource(); src.buffer = samples.run; const pan = ac.createStereoPanner ? ac.createStereoPanner() : null; const g = ac.createGain(); g.gain.value = 1.0; if (pan){ pan.pan.setValueAtTime(-0.9, ac.currentTime); pan.pan.linearRampToValueAtTime(0.9, ac.currentTime + 2.6); src.connect(pan); pan.connect(g); } else src.connect(g); g.connect(master); src.start(); }
+}
 
 // ───────────────────────── THE CLINIC ─────────────────────────
 // Stand-local coords again. A small single-storey clinic, long shut: a waiting room and reception at the front, a corridor, three exam rooms off it.
@@ -2100,7 +2122,7 @@ const torchSpill = new THREE.PointLight(0xfff0d8, 0, 3.5, 1.6); torchSpill.posit
 const beamCone = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 2.3, 9, 20, 1, true), beamMat); beamCone.rotation.x = Math.PI/2; beamCone.position.set(0.14, -0.22 - 0.0, -0.64 - 4.5); beamCone.renderOrder = 5; camera.add(beamCone);   // narrow end at the lens, flaring forward
 const beamCore = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.9, 7, 14, 1, true), beamMat); beamCore.rotation.x = Math.PI/2; beamCore.position.set(0.14, -0.22, -0.64 - 3.5); beamCore.renderOrder = 5; camera.add(beamCore);   // a brighter core down the middle
 beamCone.layers.set(0); beamCore.layers.set(0);
-let hasTorch = false;
+let hasTorch = false, torchFlickT = 6, torchFlickLeft = 0;
 const handNozzle = new THREE.Group(); handNozzle.position.set(0.3, -0.26, -0.5); handNozzle.rotation.set(0.15, -0.5, -0.1); handNozzle.visible = false; camera.add(handNozzle);
 handNozzle.add(makeNozzle());
 const handMesh = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.11, 0.08), new THREE.MeshLambertMaterial({color:0xb08f78})); handMesh.position.set(-0.05, -0.09, 0); handNozzle.add(handMesh);
@@ -2546,7 +2568,7 @@ function startAudio(){
   ac = new (window.AudioContext || window.webkitAudioContext)();
   const out = ac.createGain(); out.gain.value = 0.9; out.connect(ac.destination); master = out;
   loadSample('open', 'open.wav');
-  loadSample('door', 'door1.wav'); loadSample('door2', 'door2.wav'); loadSample('lid', 'lid.wav'); loadSample('squeak', 'squeak.wav'); loadSample('ui', 'ui.wav');
+  loadSample('door', 'door1.wav'); loadSample('door2', 'door2.wav'); loadSample('lid', 'lid.wav'); loadSample('squeak', 'squeak.wav'); loadSample('ui', 'ui.wav'); loadSample('run', 'run.wav');
   // the two rain beds: a gentle downpour outside, rain on the car roof inside — level-matched, crossfaded by where you are
   const rainBed = (url, cb) => fetch(url).then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)).then(buf => { const src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.loopStart = 0.06; src.loopEnd = buf.duration - 0.06; const g = ac.createGain(); g.gain.value = 0; src.connect(g); g.connect(out); src.start(0, 0.06); cb(g); }).catch(()=>{});
   rainBed('rainloop_out.mp3', g => rainOut = g); rainBed('rainloop_car.mp3', g => rainCar = g);
@@ -2676,7 +2698,9 @@ function frame(now){
   }
 
   shifter.rotation.x += (gearTarget - shifter.rotation.x) * Math.min(1, dt*8);
-  { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 4.0 * tk; torchSpill.intensity = 0.45 * tk; beamMat.opacity = 0.09 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
+  torchFlickT -= dt; if (torchFlickT <= 0){ torchFlickT = 5 + Math.random()*14; torchFlickLeft = 3 + (Math.random()*9|0); }   // every so often the bulb stutters for a few frames
+  let tf = Math.random() < 0.015 ? 0.6 : 1; if (torchFlickLeft > 0 && Math.random() < 0.5){ tf = 0.1 + Math.random()*0.6; torchFlickLeft--; }
+  { const tk = (hasTorch && mode === 'walk') ? tf : 0; torchBeam.intensity = 4.0 * tk; torchSpill.intensity = 0.45 * tk; beamMat.opacity = 0.09 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
   if (cry && ac){ // her crying, from wherever she is
     let want = 0, cut = 400;
     if (stopKind === 'tower' && mode !== 'drive'){
@@ -2689,10 +2713,11 @@ function frame(now){
     cry.g.gain.setTargetAtTime(want, ac.currentTime, 0.4); cry.f.frequency.setTargetAtTime(cut, ac.currentTime, 0.4);
   }
   if (stopKind === 'tower'){ const sk = Math.random() < 0.05 ? 0.3 : 1; for (const ss of stairSigns){ if (ss.isLight) ss.intensity = 0.5*sk; else ss.material.color.setScalar(0.6 + 0.4*sk); }
-    const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1) toast('second floor'); else if (fl === 2) toast('third floor');  } }
+    const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1){ toast('second floor'); if (runnerT < 0 && !runner.userData.done){ runner.userData.done = true; setTimeout(startRunner, 700); } } else if (fl === 2) toast('third floor');  } }
   if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
   if (stopKind === 'clinic'){ const hb = Math.pow(Math.max(0, Math.sin(now*0.0075)), 8); patientG.userData.heart.scale.set(1 + hb*0.25, 0.8 + hb*0.2, 1.1 + hb*0.25);   // it's still going
     const fk = Math.random() < 0.04 ? 0.4 : 1; for (const l of clinicLights) l.intensity = 0.55*fk; surgLight.intensity = 2.4 * (Math.random() < 0.03 ? 0.5 : 1); }
+  if (runnerT >= 0){ runnerT += dt; const u = runnerT/2.6; if (u >= 1){ runner.visible = false; runnerT = -1; } else { runner.position.lerpVectors(runnerFrom, runnerTo, u); runner.position.y = runnerFrom.y + Math.abs(Math.sin(now*0.028))*0.06; for (let i=0;i<2;i++) runnerLegs[i].rotation.x = Math.sin(now*0.028 + i*Math.PI)*0.9; } }
   if (stopKind === 'tower' && crierShake){
     const sob = Math.max(0, Math.sin(now*0.0045)) ; const j = Math.sin(now*0.03)*0.012*sob + Math.sin(now*0.071)*0.006;   // breath that catches, then shudders
     crierShake.scale.set(1 + j, 1, 1 + j*0.5); headC5.rotation.x = 0.95 + j*2.5; headC5.rotation.z = Math.sin(now*0.0021)*0.08;
