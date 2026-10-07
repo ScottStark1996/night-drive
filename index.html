@@ -85,13 +85,15 @@ const MOTEL_X = 8;         // road-x where the car parks in the motel lot
 const TOWER_TIME = 20;     // seconds from the motel to the abandoned building (set to ~150 for the real game)
 const TOWER_D = MOTEL_D + SPEED*TOWER_TIME + 70;         // where the car stops below it
 const TOWER_X = 6.5;       // road-x where the car parks on the cracked lot in front
-function inTowerZone(d){ return d > TOWER_D - 30 && d < TOWER_D + 30; }
+function inTowerZone(d){ return nearD(d, TOWER_D, 30, 30); }
 const CLINIC_TIME = 20;    // seconds from the building to the clinic (set to ~120 for the real game)
 const CLINIC_D = TOWER_D + SPEED*CLINIC_TIME + 70;       // where the car stops at the clinic
 const CLINIC_X = 6.5;
-function inClinicZone(d){ return d > CLINIC_D - 26 && d < CLINIC_D + 26; }
-function inMotelZone(d){ return d > MOTEL_D - 26 && d < MOTEL_D + 30; }
-function inStopZone(d, x){ return (x > 0 && x < 38 && d > STOP_D - 46 && d < STOP_D + 24) || (x > 0 && x < 17 && d > PEANUT_D - 40 && d < PEANUT_D + 16) || (x > 0 && x < 32 && inMotelZone(d)) || (x > 0 && x < 42 && inTowerZone(d)) || (x > 0 && x < 40 && inClinicZone(d)); }   // clearings for the station, the stand and the motel
+function inClinicZone(d){ return nearD(d, CLINIC_D, 26, 26); }
+// distances wrap round the loop, and later stops sit past its end — so every zone test is taken modulo L
+function nearD(d, D, before, after){ let r = ((d - D) % L + L) % L; if (r > L/2) r -= L; return r > -before && r < after; }
+function inMotelZone(d){ return nearD(d, MOTEL_D, 26, 30); }
+function inStopZone(d, x){ return (x > 0 && x < 38 && nearD(d, STOP_D, 46, 24)) || (x > 0 && x < 17 && nearD(d, PEANUT_D, 40, 16)) || (x > 0 && x < 32 && inMotelZone(d)) || (x > 0 && x < 42 && inTowerZone(d)) || (x > 0 && x < 40 && inClinicZone(d)); }   // clearings for the station, the stand and the motel
 function C(d){ return 45*Math.sin(d*0.0035) + 20*Math.sin(d*0.009+2); }
 function Cp(d){ return 45*0.0035*Math.cos(d*0.0035) + 20*0.009*Math.cos(d*0.009+2); }
 
@@ -238,8 +240,8 @@ for (let d=0; d<L; d+=10){ addThing(new THREE.Mesh(roadGeo, M.road), d, 0, true)
 // solid forest mass behind the trees — a continuous dark wall so no gap ever shows sky
 const wallMat = new THREE.MeshLambertMaterial({color:0x0a0d0a, flatShading:true});
 const wallGeo = lumpy(new THREE.BoxGeometry(14, 16, 20.5, 2, 3, 4), 1.6); wallGeo.translate(0, 7.5, 0);
-function inPeanutZone(d){ return d > PEANUT_D - 40 && d < PEANUT_D + 16; }
-function inStationZone(d){ return d > STOP_D - 46 && d < STOP_D + 24; }
+function inPeanutZone(d){ return nearD(d, PEANUT_D, 40, 16); }
+function inStationZone(d){ return nearD(d, STOP_D, 46, 24); }
 // how far each wall steps back from the road at a given distance: eased in and out over a long run, so the step never shows as a flat end-face
 function ramp(d, inFn, w){ if (inFn(d)) return 1; let best = 0; for (let s = -w; s <= w; s += 4){ if (inFn(d + s)) best = Math.max(best, 1 - Math.abs(s)/w); } const k = best; return k*k*(3 - 2*k); }
 function nearWallX(d){ return 20 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 22*ramp(d, inStationZone, 70) + 24*ramp(d, inTowerZone, 80) + 20*ramp(d, inClinicZone, 70); }   // right-hand side only; the left wall never moves
@@ -1392,11 +1394,11 @@ const floorTorch = new THREE.Group(); floorTorch.position.set(13.2, 0.04, -1.6);
   const fcone = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 2.6, 11, 20, 1, true), beamMat.clone()); fcone.rotation.x = Math.PI/2; fcone.position.set(0, 0.03, -0.18 - 5.5); fcone.renderOrder = 5; floorTorch.add(fcone); floorTorch.userData.cone = fcone; floorTorch.userData.glow = glow;   // and its visible beam, lying along the floor
   floorTorch.traverse(o => o.name = 'torchpick'); }
 // emergency signs over the stairwell opening on each floor, battery backup still just alive: the one thing in here that tells you where to go
-const stairSignTex = txt => textTexP(96, 28, g => { g.fillStyle = '#0a1a0c'; g.fillRect(0,0,96,28); g.fillStyle = '#5ad070'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText(txt, 48, 20); g.fillStyle = 'rgba(0,0,0,0.35)'; for (let i=0;i<40;i++) g.fillRect(Math.random()*96|0, Math.random()*28|0, 2, 1); });
+const stairSignTex = txt => textTexP(96, 28, g => { g.fillStyle = '#1a0608'; g.fillRect(0,0,96,28); g.fillStyle = '#e03a3a'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText(txt, 48, 20); g.fillStyle = 'rgba(0,0,0,0.35)'; for (let i=0;i<40;i++) g.fillRect(Math.random()*96|0, Math.random()*28|0, 2, 1); });
 const upTex = stairSignTex('STAIRS ↑'), downTex = stairSignTex('STAIRS ↓');
 const stairSigns = [];
 function stairSign(tex, x, y, z, faceZ){ const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.32), new THREE.MeshBasicMaterial({map: tex})); sg.position.set(x, y + 2.65, z); sg.rotation.y = faceZ > 0 ? 0 : Math.PI; towerG.add(sg); stairSigns.push(sg); }
-function stairLamp(x, y, z){ const sl = new THREE.PointLight(0x5ad070, 0.5, 6, 1.6); sl.position.set(x, y + 2.4, z); sl.layers.enable(1); towerG.add(sl); stairSigns.push(sl); }
+function stairLamp(x, y, z){ const sl = new THREE.PointLight(0xd03030, 0.5, 6, 1.6); sl.position.set(x, y + 2.4, z); sl.layers.enable(1); towerG.add(sl); stairSigns.push(sl); }
 stairSign(upTex, 27, 0, 10.12, 1); stairLamp(26, 0, 10.8);                                 // ground: up, back-right
 stairSign(downTex, 25, 3.6, 10.12, 1); stairLamp(26, 3.6, 10.8);                            // second: down there…
 stairSign(upTex, 15, 3.6, -1.88, 1); stairLamp(14, 3.6, -1.2);                              // …and up in the front-left corner
@@ -2046,10 +2048,10 @@ const betaParts = bottle('METOPROLOL', '50 mg · TAKE DAILY', '#3a6fb5', 'beta',
 const thinnerParts = bottle('WARFARIN', '5 mg · TAKE DAILY', '#8a3ab5', 'thinner', 0.07, 0.0, -0.5);
 photo.position.set(0.0, 0.012, 0.07); photo.rotation.x = -Math.PI/2; photo.rotation.z = 0.25; consoleItems.add(photo);
 // the flashlight, once its battery has gone: it ends up in the glovebox after the building
-const gloveTorch = new THREE.Group(); gloveTorch.position.set(-0.02, 0.085, -0.02); gloveTorch.rotation.set(0, 0.35, Math.PI/2); gloveHinge.add(gloveTorch); gloveTorch.visible = false;
+const gloveTorch = new THREE.Group(); gloveTorch.position.set(-0.01, 0.1, -0.078); gloveTorch.rotation.set(0, 0.25, Math.PI/2);   // lying on the inside of the door with the other things gloveHinge.add(gloveTorch); gloveTorch.visible = false;
 { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.026, 0.22, 8), new THREE.MeshLambertMaterial({color:0x3a3a3c})); gloveTorch.add(b); const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.028, 0.06, 8), new THREE.MeshLambertMaterial({color:0x2a2a2c})); hd.position.y = 0.13; gloveTorch.add(hd); gloveTorch.traverse(o => o.name = 'deadtorch'); }
 let torchDead = false;
-const sd = new THREE.Group(); sd.position.set(0.1, 0.1, -0.055); sd.rotation.z = Math.PI/2; sd.rotation.x = 0.2; gloveHinge.add(sd); sd.visible = false;
+const sd = new THREE.Group(); sd.position.set(0.2, 0.1, -0.055); sd.rotation.z = Math.PI/2; sd.rotation.x = 0.2; gloveHinge.add(sd); sd.visible = false;
 const sdHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.012, 0.09, 8), new THREE.MeshLambertMaterial({color:0xd8b23a})); sdHandle.name = 'screwdriver'; sd.add(sdHandle);
 const sdShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.13, 6), M.chrome); sdShaft.position.y = -0.11; sdShaft.name = 'screwdriver'; sd.add(sdShaft);
 const sdTip = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.003), M.chrome); sdTip.position.y = -0.175; sdTip.name = 'screwdriver'; sd.add(sdTip);
@@ -2253,7 +2255,7 @@ function tap(e){
       else if (nm === 'crier'){ startDialogCrier(); }
       else if (nm === 'patient'){ startDialogPatient(); }
       else if (nm === 'bell'){ sfx('ui', 0.25); thought('Nobody\u2019s coming.'); }
-      else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the green sign'), 3200); }
+      else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the red sign'), 3200); }
       else if (nm === 'arr'){ inspect('These are… my emergency antiarrhythmics. For my heart.'); }
       else if (nm === 'vend'){ sfx('ui', 0.25); thought('Can\u2019t. They all have caffeine.'); }
       else if (nm === 'snack'){ sfx('ui', 0.25); thought('I\u2019m not hungry.'); }
