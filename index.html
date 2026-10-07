@@ -1283,9 +1283,11 @@ motelG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
 const beamTex = (()=>{ const c = document.createElement('canvas'); c.width = 8; c.height = 64; const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,240,210,0.9)'); gr.addColorStop(0.25, 'rgba(255,240,210,0.42)'); gr.addColorStop(0.7, 'rgba(255,240,210,0.12)'); gr.addColorStop(1, 'rgba(255,240,210,0)'); g.fillStyle = gr; g.fillRect(0,0,8,64); return new THREE.CanvasTexture(c); })();
 const beamMat = new THREE.MeshBasicMaterial({map: beamTex, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide, fog:false});
 // Stand-local coords: x right of the road, z = -(d - TOWER_D). A four-storey concrete frame, left to the weather for years.
-// Footprint x 11..29, z -12..12. Floors at y 0 / 3.6 / 7.2 / 10.8, roof at 14.4. Stairwell in the back corner, x 24..28, z 2..10.
+// Footprint x 11..29, z -12..12. Three floors at y 0 / 3.6 / 7.2, roof at 10.8. Two stairwells: ground→2nd in the back-right corner (x 24..28, z 2..10),
+// 2nd→3rd in the front-left corner (x 12..16, z -10..-2) — so you cross the whole second floor between them.
 const towerG = new THREE.Group(); addThing(towerG, TOWER_D, 0, true);
-const FLOOR_H = 3.6, FLOORS = [0, 3.6, 7.2, 10.8];
+const FLOOR_H = 3.6, FLOORS = [0, 3.6, 7.2];
+const STAIR_A = {xw: 24, ze: 10, wallSide: 0}, STAIR_B = {xw: 12, ze: -2, wallSide: 1};   // each stairwell: west edge, entry z (runs go toward ze-8), which side its inner wall is on
 function tbox(w,h,d,mat,x,y,z,parent){ const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); m.position.set(x,y,z); (parent||towerG).add(m); return m; }
 function concTex(base, streaks){ const tx = textTexP(64, 64, g => {
   g.fillStyle = base; g.fillRect(0,0,64,64);
@@ -1301,16 +1303,15 @@ const puddleM = new THREE.MeshPhongMaterial({color:0x101418, shininess: 60, spec
 // the lot: cracked, weeds up through it
 const towerLot = new THREE.Mesh(new THREE.PlaneGeometry(10, 30, 10, 30), asphalt);   // subdivided so the lights pool on it towerLot.rotation.x = -Math.PI/2; towerLot.position.set(6.5, 0.01, 0); towerG.add(towerLot);
 for (let i=0;i<14;i++){ const b = new THREE.Mesh(bushGeo.core, new THREE.MeshLambertMaterial({color: 0x2a3a22, flatShading:true})); const s = 0.5 + Math.random()*0.6; b.scale.set(s, s*0.8, s); b.position.set(3 + Math.random()*8, 0, -15 + Math.random()*30); b.rotation.y = Math.random()*6.28; towerG.add(b); }
-// slabs: ground, then three upper floors each with the stairwell cut out, and the roof
+// slabs: ground; the second floor with the back-right stairwell cut out; the third with the front-left one cut out; a solid roof
 tbox(18, 0.3, 24, concSlab, 20, -0.15, 0);
-for (const y of [3.6, 7.2, 10.8, 14.4]){
-  tbox(13, 0.3, 24, concSlab, 17.5, y - 0.15, 0);                           // x 11..24
-  tbox(5, 0.3, 14, concSlab, 26.5, y - 0.15, -5);                            // x 24..29, z -12..2
-  tbox(5, 0.3, 2, concSlab, 26.5, y - 0.15, 11);                             // x 24..29, z 10..12
-  tbox(1, 0.3, 8, concSlab, 28.5, y - 0.15, 6);                              // x 28..29 strip beside the stairs
-}
+{ const y = 3.6;   // hole x 24..28, z 2..10
+  tbox(13, 0.3, 24, concSlab, 17.5, y - 0.15, 0); tbox(5, 0.3, 14, concSlab, 26.5, y - 0.15, -5); tbox(5, 0.3, 2, concSlab, 26.5, y - 0.15, 11); tbox(1, 0.3, 8, concSlab, 28.5, y - 0.15, 6); }
+{ const y = 7.2;   // hole x 12..16, z -10..-2
+  tbox(13, 0.3, 24, concSlab, 22.5, y - 0.15, 0); tbox(5, 0.3, 14, concSlab, 13.5, y - 0.15, 5); tbox(5, 0.3, 2, concSlab, 13.5, y - 0.15, -11); tbox(1, 0.3, 8, concSlab, 11.5, y - 0.15, -6); }
+tbox(18, 0.3, 24, concSlab, 20, 10.8 - 0.15, 0);
 // columns
-for (const x of [11.25, 17, 23, 28.75]) for (const z of [-11.75, -6, 0, 6, 11.75]) tbox(0.5, 14.4, 0.5, conc, x, 7.2, z);
+for (const x of [11.25, 17, 23, 28.75]) for (const z of [-11.75, -6, 0, 6, 11.75]) tbox(0.5, 10.8, 0.5, conc, x, 5.4, z);
 // exterior walls, bay by bay: most are a sill wall and a lintel with a black window hole between; some are whole; some gone entirely
 let seed = 7; const rnd = () => { seed = (seed*9301 + 49297) % 233280; return seed/233280; };
 const bays = []; // each bay: its centre, its clear length, and which way it runs
@@ -1320,7 +1321,7 @@ for (let i=0;i<3;i++){ const x0 = xCols[i], x1 = xCols[i+1]; for (const z of [-1
 const graffitiTex = (txt, col) => textTexP(64, 24, g => { g.clearRect(0,0,64,24); g.fillStyle = col; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText(txt, 32, 18); g.fillStyle = 'rgba(0,0,0,0.25)'; for (let i=0;i<30;i++) g.fillRect(Math.random()*64|0, Math.random()*24|0, 1, 1); });
 const graffiti = [graffitiTex('WHY', '#8a2a2a'), graffitiTex('GO HOME', '#2a4a8a'), graffitiTex('NOBODY', '#7a7a30'), graffitiTex('STAY', '#8a2a2a')];
 bays.forEach((b, i) => {
-  for (let f=0; f<4; f++){
+  for (let f=0; f<3; f++){
     const base = FLOORS[f], r = rnd();
     const entrance = f === 0 && b.along === 'z' && b.x === 11.25 && Math.abs(b.z - (-3)) < 0.1;   // ground floor, front face, second bay: the way in
     if (entrance || r < 0.14) continue;                                                       // nothing left of this one
@@ -1334,31 +1335,34 @@ bays.forEach((b, i) => {
     }
   }
 });
-// stairwell: walls on the inside, a divider between the two runs, the steps themselves, landings
-tbox(0.2, 14.4, 8, concDark, 24, 7.2, 6);                                    // inner wall x=24
-tbox(4.2, 14.4, 0.2, concDark, 26, 7.2, 2);                                  // back wall z=2
-tbox(0.16, 14.4, 6, concDark, 26, 7.2, 7);                                   // divider between the runs
-for (let k=0; k<3; k++){
-  const base = FLOORS[k];
-  for (let i=0;i<12;i++){ const h = 0.15*(i+1); tbox(2, 0.16, 0.5, conc, 27, base + h - 0.08, 10 - 0.25 - i*0.5); }      // run A, up toward the back: treads
-  tbox(2, 0.14, 6.3, concDark, 27, base + 0.74, 7).rotation.x = 0.291;                                                 // the sloped underside of the flight
-  tbox(4, 0.3, 2, concSlab, 26, base + 1.8 - 0.15, 3);                                                                 // landing
-  for (let i=0;i<12;i++){ const h = 0.15*(i+1); tbox(2, 0.16, 0.5, conc, 25, base + 1.8 + h - 0.08, 4 + 0.25 + i*0.5); }   // run B, back toward the floor
-  tbox(2, 0.14, 6.3, concDark, 25, base + 1.8 + 0.74, 7).rotation.x = -0.291;
-  const rail = tbox(0.04, 0.04, 6.3, pumpDark, 26.14, base + 0.9 + 0.95, 7); rail.rotation.x = 0.291;                  // a handrail along the divider, following run A
-  for (let i=0;i<4;i++) tbox(0.03, 0.9, 0.03, pumpDark, 26.14, base + 1.8*(10 - (4.7 + i*1.6))/6 + 0.45, 4.7 + i*1.6);   // its posts
-  const rail2 = tbox(0.04, 0.04, 6.3, pumpDark, 25.86, base + 1.8 + 0.9 + 0.95, 7); rail2.rotation.x = -0.291;          // and one for run B
-  for (let i=0;i<4;i++) tbox(0.03, 0.9, 0.03, pumpDark, 25.86, base + 1.8 + 1.8*((4.7 + i*1.6) - 4)/6 + 0.45, 4.7 + i*1.6);
+// a stairwell: inner wall, back wall, a divider between the two runs, the treads with sloped undersides, a landing, rails
+function stairwell(S, base){
+  const {xw, ze, wallSide} = S, xc = xw + 2, zc = ze - 4, zb = ze - 8;
+  tbox(0.2, FLOOR_H*2, 8, concDark, wallSide ? xw + 4 : xw, base + FLOOR_H, zc);        // the wall facing the floor (two storeys: it walls the hole on the floor above too)
+  tbox(4.2, FLOOR_H*2, 0.2, concDark, xc, base + FLOOR_H, zb);                            // back wall
+  tbox(0.16, FLOOR_H*2, 6, concDark, xc, base + FLOOR_H, ze - 3);                          // divider between the runs
+  const xa = xc + 1, xb = xc - 1;                                                          // run A on the east half (up, away from the entry), run B on the west (up, back toward it)
+  for (let i=0;i<12;i++){ const h = 0.15*(i+1); tbox(2, 0.16, 0.5, conc, xa, base + h - 0.08, ze - 0.25 - i*0.5); }
+  tbox(2, 0.14, 6.3, concDark, xa, base + 0.74, ze - 3).rotation.x = 0.291;
+  tbox(4, 0.3, 2, concSlab, xc, base + 1.8 - 0.15, zb + 1);                                                                 // landing
+  for (let i=0;i<12;i++){ const h = 0.15*(i+1); tbox(2, 0.16, 0.5, conc, xb, base + 1.8 + h - 0.08, zb + 2 + 0.25 + i*0.5); }
+  tbox(2, 0.14, 6.3, concDark, xb, base + 1.8 + 0.74, ze - 3).rotation.x = -0.291;
+  const rail = tbox(0.04, 0.04, 6.3, pumpDark, xc + 0.14, base + 0.9 + 0.95, ze - 3); rail.rotation.x = 0.291;
+  for (let i=0;i<4;i++){ const z = zb + 2 + 0.7 + i*1.6; tbox(0.03, 0.9, 0.03, pumpDark, xc + 0.14, base + 1.8*(ze - z)/6 + 0.45, z); }
+  const rail2 = tbox(0.04, 0.04, 6.3, pumpDark, xc - 0.14, base + 1.8 + 0.9 + 0.95, ze - 3); rail2.rotation.x = -0.291;
+  for (let i=0;i<4;i++){ const z = zb + 2 + 0.7 + i*1.6; tbox(0.03, 0.9, 0.03, pumpDark, xc - 0.14, base + 1.8 + 1.8*(z - (zb + 2))/6 + 0.45, z); }
 }
+stairwell(STAIR_A, 0); stairwell(STAIR_B, 3.6);
 // interior: a few partition walls, rubble, puddles, hanging wires, a mattress, a chair
 tbox(0.2, 3.3, 7, concDark, 17, 1.65, 7.5); tbox(6, 3.3, 0.2, concDark, 14, 1.65, 4);          // ground floor partitions, broken off
-tbox(0.2, 3.3, 5, concDark, 20, 3.6 + 1.65, -8); tbox(0.2, 2.1, 4, concDark, 14, 7.2 + 1.05, 6); tbox(5, 3.3, 0.2, concDark, 19.5, 7.2 + 1.65, 8);
-const offStairs = () => { let x, z; do { x = 12 + Math.random()*16; z = -11 + Math.random()*22; } while (x > 23.5 && z > 1.5 && z < 10.5); return [x, z]; };   // never in the stairwell, where there's no floor to sit on
-for (let i=0;i<40;i++){ const f = FLOORS[i % 4]; const [x, z] = offStairs(); const r = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.25 + Math.random()*0.5, 6, 4), 0.12), rubbleM); r.scale.y = 0.45; r.position.set(x, f + 0.05, z); r.rotation.y = Math.random()*6.28; towerG.add(r); }
-for (let i=0;i<14;i++){ const f = FLOORS[i % 4]; const [px, pz] = offStairs(); const pd = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random()*1.2, 9), puddleM); pd.rotation.x = -Math.PI/2; pd.position.set(px, f + 0.012, pz); pd.scale.x = 1.6; towerG.add(pd); }
-for (let i=0;i<10;i++){ const f = FLOORS[1 + (i % 3)]; const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1 + Math.random()*1.6, 4), blackM); const [wx, wz] = offStairs(); wire.position.set(wx, f - 0.3 - 0.7, wz); wire.rotation.z = (Math.random()-0.5)*0.4; towerG.add(wire); }
-tbox(1.0, 0.2, 1.9, new THREE.MeshLambertMaterial({color:0x6a6050}), 14, 3.6 + 0.1, -9);                                   // a mattress, floor two
-{ const ch = new THREE.Group(); ch.position.set(21, 7.2, -9); ch.rotation.set(0, 0.6, Math.PI/2 - 0.2); towerG.add(ch); for (const [x,z] of [[-0.18,-0.18],[0.18,-0.18],[-0.18,0.18],[0.18,0.18]]) tbox(0.04, 0.45, 0.04, rust, x, 0.22, z, ch); tbox(0.44, 0.04, 0.44, rust, 0, 0.46, 0, ch); tbox(0.44, 0.4, 0.04, rust, 0, 0.68, -0.2, ch); }   // a tipped-over chair, floor three
+tbox(0.2, 3.3, 5, concDark, 20, 3.6 + 1.65, -8); tbox(0.2, 3.3, 6, concDark, 21, 3.6 + 1.65, 5);   // second floor: two broken partitions you have to go round on the way across
+tbox(0.2, 2.1, 4, concDark, 19, 7.2 + 1.05, 2); tbox(5, 3.3, 0.2, concDark, 19.5, 7.2 + 1.65, 8);   // third floor
+const offStairs = () => { let x, z; do { x = 12 + Math.random()*16; z = -11 + Math.random()*22; } while ((x > 23.5 && z > 1.5 && z < 10.5) || (x < 16.5 && z > -10.5 && z < -1.5)); return [x, z]; };   // never in the stairwell, where there's no floor to sit on
+for (let i=0;i<36;i++){ const f = FLOORS[i % 3]; const [x, z] = offStairs(); const r = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.25 + Math.random()*0.5, 6, 4), 0.12), rubbleM); r.scale.y = 0.45; r.position.set(x, f + 0.05, z); r.rotation.y = Math.random()*6.28; towerG.add(r); }
+for (let i=0;i<12;i++){ const f = FLOORS[i % 3]; const [px, pz] = offStairs(); const pd = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random()*1.2, 9), puddleM); pd.rotation.x = -Math.PI/2; pd.position.set(px, f + 0.012, pz); pd.scale.x = 1.6; towerG.add(pd); }
+for (let i=0;i<10;i++){ const f = FLOORS[1 + (i % 2)]; const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1 + Math.random()*1.6, 4), blackM); const [wx, wz] = offStairs(); wire.position.set(wx, f - 0.3 - 0.7, wz); wire.rotation.z = (Math.random()-0.5)*0.4; towerG.add(wire); }
+tbox(1.0, 0.2, 1.9, new THREE.MeshLambertMaterial({color:0x6a6050}), 23, 3.6 + 0.1, -8.5);                                   // a mattress, floor two
+{ const ch = new THREE.Group(); ch.position.set(26, 7.2, -8); ch.rotation.set(0, 0.6, Math.PI/2 - 0.2); towerG.add(ch); for (const [x,z] of [[-0.18,-0.18],[0.18,-0.18],[-0.18,0.18],[0.18,0.18]]) tbox(0.04, 0.45, 0.04, rust, x, 0.22, z, ch); tbox(0.44, 0.04, 0.44, rust, 0, 0.46, 0, ch); tbox(0.44, 0.4, 0.04, rust, 0, 0.68, -0.2, ch); }   // a tipped-over chair, floor three
 // second floor: a heap of trash against a column, and a pill bottle in it
 const trashG = new THREE.Group(); trashG.position.set(16.2, 3.6, 1.0); towerG.add(trashG);
 {
@@ -1384,11 +1388,12 @@ const floorTorch = new THREE.Group(); floorTorch.position.set(13.2, 0.04, -1.6);
 const stairSignTex = txt => textTexP(96, 28, g => { g.fillStyle = '#0a1a0c'; g.fillRect(0,0,96,28); g.fillStyle = '#5ad070'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText(txt, 48, 20); g.fillStyle = 'rgba(0,0,0,0.35)'; for (let i=0;i<40;i++) g.fillRect(Math.random()*96|0, Math.random()*28|0, 2, 1); });
 const upTex = stairSignTex('STAIRS ↑'), downTex = stairSignTex('STAIRS ↓');
 const stairSigns = [];
-FLOORS.forEach((y, k) => {
-  if (k < 3){ const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.32), new THREE.MeshBasicMaterial({map: upTex})); sg.position.set(27, y + 2.65, 10.12); towerG.add(sg); stairSigns.push(sg); }     // over the flight that goes up
-  if (k > 0){ const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.32), new THREE.MeshBasicMaterial({map: downTex})); sg.position.set(25, y + 2.65, 10.12); towerG.add(sg); stairSigns.push(sg); }   // and the one that goes down
-  const sl = new THREE.PointLight(0x5ad070, 0.5, 6, 1.6); sl.position.set(26, y + 2.4, 10.8); sl.layers.enable(1); towerG.add(sl); stairSigns.push(sl);
-});
+function stairSign(tex, x, y, z, faceZ){ const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.32), new THREE.MeshBasicMaterial({map: tex})); sg.position.set(x, y + 2.65, z); sg.rotation.y = faceZ > 0 ? 0 : Math.PI; towerG.add(sg); stairSigns.push(sg); }
+function stairLamp(x, y, z){ const sl = new THREE.PointLight(0x5ad070, 0.5, 6, 1.6); sl.position.set(x, y + 2.4, z); sl.layers.enable(1); towerG.add(sl); stairSigns.push(sl); }
+stairSign(upTex, 27, 0, 10.12, 1); stairLamp(26, 0, 10.8);                                 // ground: up, back-right
+stairSign(downTex, 25, 3.6, 10.12, 1); stairLamp(26, 3.6, 10.8);                            // second: down there…
+stairSign(upTex, 15, 3.6, -1.88, 1); stairLamp(14, 3.6, -1.2);                              // …and up in the front-left corner
+stairSign(downTex, 13, 7.2, -1.88, 1); stairLamp(14, 7.2, -1.2);                            // third: down
 // a dead sign on the front
 const towerSign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.8), new THREE.MeshLambertMaterial({map: textTexP(128, 26, g => { g.fillStyle = '#3a3630'; g.fillRect(0,0,128,26); g.fillStyle = '#8a8070'; g.font = 'bold 14px sans-serif'; g.textAlign = 'center'; g.fillText('CO  NTY  REG  ONAL', 64, 19); for (let i=0;i<60;i++){ g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.random()*128|0, Math.random()*26|0, 2, 1); } })})); towerSign.position.set(11.07, 3.9, -3); towerSign.rotation.y = -Math.PI/2; towerG.add(towerSign);
 // vines over the entrance, more bushes at the foot of the walls
@@ -1397,23 +1402,26 @@ for (let i=0;i<6;i++){ const v = new THREE.Mesh(bushGeo.core, new THREE.MeshLamb
 for (const y of FLOORS) for (const z of [-7, 7]){ const l = new THREE.PointLight(0x4a5a7a, 0.5, 15, 1.5); l.position.set(12.5, y + 2.2, z); l.layers.enable(1); towerG.add(l); const l2 = new THREE.PointLight(0x4a5a7a, 0.42, 14, 1.5); l2.position.set(27.5, y + 2.2, z); l2.layers.enable(1); towerG.add(l2); }
 const lotLight = new THREE.PointLight(0x4a5a7a, 0.4, 14, 1.6); lotLight.position.set(8, 5, 0); lotLight.layers.enable(1); towerG.add(lotLight);
 towerG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
-// walk collision inside: columns (interior ones), partitions, stairwell walls — the same on every floor
-const towerBoxes = [];
-for (const x of [17, 23]) for (const z of [-6, 0, 6]) towerBoxes.push([x-0.3, x+0.3, z-0.3, z+0.3]);
-towerBoxes.push([23.85, 24.15, 1.9, 10.1], [23.85, 28.2, 1.85, 2.15], [25.9, 26.1, 3.9, 10.1]);
+// walk collision inside, per floor: columns, partitions, and whichever stairwell is on that floor
+const colBoxes = []; for (const x of [17, 23]) for (const z of [-6, 0, 6]) colBoxes.push([x-0.3, x+0.3, z-0.3, z+0.3]);
+const stairBoxesA = [[23.85, 24.15, 1.9, 10.1], [23.85, 28.2, 1.85, 2.15], [25.9, 26.1, 3.9, 10.1]];
+const stairBoxesB = [[15.85, 16.15, -10.1, -1.9], [11.8, 16.15, -10.15, -9.85], [13.9, 14.1, -8.1, -1.9]];
+const towerBoxesByFloor = [
+  [...colBoxes, ...stairBoxesA, [16.9, 17.1, 4, 11], [11, 17, 3.9, 4.1]],
+  [...colBoxes, ...stairBoxesA, ...stairBoxesB, [19.9, 20.1, -10.5, -5.5], [20.9, 21.1, 2, 8]],
+  [...colBoxes, ...stairBoxesB, [18.9, 19.1, 0, 4], [17, 22, 7.9, 8.1]],
+];
 const towerPerimeter = [[11.0, 11.4, -12, -5.6], [11.0, 11.4, -0.4, 12], [28.6, 29, -12, 12], [11, 29, -12, -11.6], [11, 29, 11.6, 12]];   // ground floor, with the gap of the entrance
-function towerFloorY(x, z, yNow){ // the height of whatever you're standing on: a floor, a step, a landing — whichever is nearest your current height
-  let best = yNow, bd = 1e9;
-  for (let k=0; k<4; k++){
-    const base = FLOORS[k]; let c = base;
-    if (k < 3 && x > 24 && x < 28.2 && z > 1.9 && z < 10.1){
-      if (x > 26 && z > 4) c = base + 1.8*(10 - z)/6;                          // run A
-      else if (z <= 4) c = base + 1.8;                                          // landing
-      else c = base + 1.8 + 1.8*(z - 4)/6;                                      // run B
-    }
-    const d = Math.abs(c - yNow); if (d < bd){ bd = d; best = c; }
-  }
-  return best;
+function stairHeight(S, base, x, z){ // height on a stairwell's treads / landing, or null if not in it
+  const {xw, ze} = S; if (!(x > xw - 0.2 && x < xw + 4.2 && z > ze - 8.1 && z < ze + 0.1)) return null;
+  if (x > xw + 2 && z > ze - 6) return base + 1.8*(ze - z)/6;                     // run A
+  if (z <= ze - 6) return base + 1.8;                                               // landing
+  return base + 1.8 + 1.8*(z - (ze - 6))/6;                                         // run B
+}
+function towerFloorY(x, z, yNow){ // the height of whatever you're standing on — whichever candidate is nearest your current height
+  const a = stairHeight(STAIR_A, 0, x, z), b = stairHeight(STAIR_B, 3.6, x, z);
+  const cands = a !== null ? [a, 7.2] : b !== null ? [0, b] : [0, 3.6, 7.2];   // inside a stairwell the flight replaces the floors it joins (there's a hole in the slab above it)
+  let best = yNow, bd = 1e9; for (const c of cands){ const d = Math.abs(c - yNow); if (d < bd){ bd = d; best = c; } } return best;
 }
 
 // ───────── the woman on the third floor ─────────
@@ -1421,7 +1429,7 @@ function towerFloorY(x, z, yNow){ // the height of whatever you're standing on: 
 const faceTex5 = pixTex('face5.png'), hairTex5 = pixTex('hair5.png');
 const faceM5 = new THREE.MeshLambertMaterial({map: faceTex5}), hairM5 = new THREE.MeshLambertMaterial({map: hairTex5}), skin5 = new THREE.MeshLambertMaterial({color:0xb09078});
 const dressM = new THREE.MeshLambertMaterial({map: textTex(64, 64, g => { g.fillStyle = '#3a2e3a'; g.fillRect(0,0,64,64); for (let i=0;i<500;i++){ g.fillStyle = Math.random()<.5 ? '#322832' : '#443644'; g.fillRect(Math.random()*64|0, Math.random()*64|0, 1, 1); } })});
-const crier = new THREE.Group(); crier.position.set(17.5, 7.2, -4); crier.rotation.y = 0.9; towerG.add(crier);   // third floor, out in the open, facing away from the stairs
+const crier = new THREE.Group(); crier.position.set(23.5, 7.2, 4.5); crier.rotation.y = 2.4; towerG.add(crier);   // third floor, out in the open, facing away from the stairs
 let crierShake = null;
 {
   const w = (m, x, y, z) => { m.position.set(x, y, z); crier.add(m); return m; };
@@ -1445,8 +1453,8 @@ headC5.add(new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.24, 0.21), [hairM5, hair
 const hairFall = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.42, 0.16), hairM5); hairFall.position.set(0, -0.08, 0.06); headC5.add(hairFall);   // long hair hanging down over her face
 crier.traverse(o => { o.name = 'crier'; o.layers.set(1); o.layers.enable(0); });
 // the thing lighting her: a dropped flashlight on the floor, pointing across her
-const torchBody = tbox(0.05, 0.05, 0.22, M.chrome, 19.6, 7.2 + 0.03, -2.2); torchBody.rotation.y = 0.55; torchBody.name = 'torch';
-const torch = new THREE.SpotLight(0xffe8c0, 1.6, 9, 0.55, 0.5, 1.4); torch.position.set(19.6, 7.2 + 0.05, -2.2); torch.target.position.set(17.2, 7.2 + 0.3, -4.2); torch.layers.enable(1); towerG.add(torch); towerG.add(torch.target);
+const torchBody = tbox(0.05, 0.05, 0.22, M.chrome, 25.8, 7.2 + 0.03, 2.6); torchBody.rotation.y = -0.9; torchBody.name = 'torch';
+const torch = new THREE.SpotLight(0xffe8c0, 1.6, 9, 0.55, 0.5, 1.4); torch.position.set(25.8, 7.2 + 0.05, 2.6); torch.target.position.set(23.2, 7.2 + 0.3, 4.8); torch.layers.enable(1); towerG.add(torch); towerG.add(torch.target);
 let metCrier = false, towerFloorSeen = 0;
 
 // ───────────────────────── THE DEER ─────────────────────────
@@ -2226,7 +2234,8 @@ function walkStep(dt){
   }
   if (stopKind === 'tower'){ // the building: columns and stairwell walls on every floor; on the ground you can roam the lot, upstairs you stay inside the frame
     const up = walker.h > 1.0;
-    const boxes = [ [c.x-1.05, c.x+1.05, c.z-2.5, c.z+2.5], ...towerBoxes, ...(up ? [] : towerPerimeter) ];
+    const fk = Math.min(2, Math.max(0, Math.floor((walker.h + 0.4)/3.6)));
+    const boxes = [ [c.x-1.05, c.x+1.05, c.z-2.5, c.z+2.5], ...towerBoxesByFloor[fk], ...(up ? [] : towerPerimeter) ];
     for (const [x0,x1,z0,z1] of boxes){ if (p.x > x0 && p.x < x1 && p.z > z0 && p.z < z1){ const dx = Math.min(p.x-x0, x1-p.x), dz = Math.min(p.z-z0, z1-p.z); if (dx < dz) p.x = (p.x-x0 < x1-p.x) ? x0 : x1; else p.z = (p.z-z0 < z1-p.z) ? z0 : z1; } }
     if (up){ p.x = Math.max(11.5, Math.min(28.5, p.x)); p.z = Math.max(-11.5, Math.min(11.5, p.z)); }
     else { p.x = Math.max(S.bounds[0], Math.min(S.bounds[1], p.x)); p.z = Math.max(S.bounds[2], Math.min(S.bounds[3], p.z)); }
@@ -2543,7 +2552,7 @@ function frame(now){
 
   { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 4.0 * tk; torchSpill.intensity = 0.45 * tk; beamMat.opacity = 0.09 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
   if (stopKind === 'tower'){ const sk = Math.random() < 0.05 ? 0.3 : 1; for (const ss of stairSigns){ if (ss.isLight) ss.intensity = 0.5*sk; else ss.material.color.setScalar(0.6 + 0.4*sk); }
-    const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1) toast('second floor'); else if (fl === 2) toast('third floor'); else if (fl === 3) toast('top floor'); } }
+    const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1) toast('second floor'); else if (fl === 2) toast('third floor');  } }
   if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
   if (stopKind === 'tower' && crierShake){
     const sob = Math.max(0, Math.sin(now*0.0045)) ; const j = Math.sin(now*0.03)*0.012*sob + Math.sin(now*0.071)*0.006;   // breath that catches, then shudders
