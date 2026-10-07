@@ -81,7 +81,7 @@ const DEER_TIME = 20;      // seconds after leaving the station until the deer (
 const DEER_D = STOP_D + SPEED*DEER_TIME + 70;            // where the deer lies
 const MOTEL_TIME = 20;     // seconds from the deer to the motel (set to ~120 for the real game)
 const MOTEL_D = DEER_D + SPEED*MOTEL_TIME + 70;          // where the car stops at the motel
-const MOTEL_X = 8;         // road-x where the car parks in the motel lot
+const MOTEL_X = 7.6;       // road-x where the car parks in the motel lot
 const TOWER_TIME = 20;     // seconds from the motel to the abandoned building (set to ~150 for the real game)
 const TOWER_D = MOTEL_D + SPEED*TOWER_TIME + 70;         // where the car stops below it
 const TOWER_X = 6.5;       // road-x where the car parks on the cracked lot in front
@@ -824,7 +824,7 @@ let inside = false, doorAngle = 0, pdoorAngle = 0, doorSwing = 0, bathSwing = 0;
 function shackBox(x0, x1, z0, z1){ return [12.5 + z0, 12.5 + z1, -1 - x1, -1 - x0]; }
 const STOPS = {
   station: { group: () => stopG, bounds: [3.0, 36, -20, 42], outside: [[11.1, 12.9, -3.4, 3.4], [22.8, 31.3, -7.8, 3.8], [6.6, 7.4, 8.6, 9.4]], room: null, insideBoxes: null, doorSpotIn: [24.6, 1.4], doorSpotOut: [21.9, 1.4] },
-  motel:   { group: () => motelG, bounds: [3.0, 15.6, -22, 20], outside: [[15.5, 23, -17.5, 15.5], [15.05, 16.0, 6.6, 9.1], [3.6, 4.4, 16.6, 17.4], [9.8, 12.3, -20.8, -19.2], [9.9, 12.1, -5.4, -0.6], [13.9, 14.9, 14.1, 14.7]], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
+  motel:   { group: () => motelG, bounds: [3.0, 15.6, -22, 20], outside: [[15.5, 23, -17.5, 15.5], [15.05, 16.0, 6.6, 9.1], [3.6, 4.4, 16.6, 17.4], [9.8, 12.3, -20.8, -19.2], [9.6, 13.8, -4.7, -2.1], [13.9, 14.9, 14.1, 14.7]], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   clinic:  { group: () => clinicG, bounds: [2.5, 26.8, -10, 10], outside: [], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   tower:   { group: () => towerG, bounds: [2.5, 28.8, -14, 14], outside: [], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   peanut:  { group: () => peanutG, bounds: [3.0, 15.5, -14, 16], outside: [[10.4, 14.8, -3.6, 1.6], [9.0, 10.4, 0.0, 1.4], [4.1, 4.7, 29.6, 30.4], [7.1, 7.9, -6.4, -5.6]], room: shackBox(-2.3, 2.3, -1.8, 1.8), insideBoxes: [ shackBox(-1.9, 0.7, 0.6, 1.2), shackBox(-2.4, 2.4, 1.6, 2.0), shackBox(1.6, 2.4, 1.0, 1.7), shackBox(-2.4, -1.8, -1.45, -0.95) ], doorSpotIn: [11.6, -1.6], doorSpotOut: [9.4, -2.4] },
@@ -1208,7 +1208,7 @@ let vendHum = 0;
 mbox(0.5, 0.7, 0.3, pumpDark, 14.4, 1.4, 14.4); mbox(0.08, 0.5, 0.08, pumpDark, 14.4, 0.6, 14.4);                       // pay phone on a post
 mbox(2.2, 1.3, 1.4, new THREE.MeshLambertMaterial({color:0x2a4a3a}), 11, 0.65, -20); mbox(2.3, 0.1, 1.5, pumpDark, 11, 1.35, -20);   // dumpster
 { // the guest's car, parked nose-in at 103: an old brown sedan
-  const g = new THREE.Group(); g.position.set(11, 0, -3); g.rotation.y = Math.PI/2 + 0.06; motelG.add(g);
+  const g = new THREE.Group(); g.position.set(11.7, 0, -3.4); g.rotation.y = Math.PI/2 + 0.06; motelG.add(g);   // nosed in at 103, a car's width clear of where you pull in
   const cm = new THREE.MeshLambertMaterial({color:0x5a4a3a}), cg = new THREE.MeshLambertMaterial({color:0x101418});
   const sh = new THREE.Shape(); [[-2.2,0.34],[-2.2,0.6],[-2.1,0.76],[-0.8,0.86],[0.9,0.9],[2.0,0.9],[2.2,0.72],[2.2,0.34]].forEach(([z,y], i) => i ? sh.lineTo(z,y) : sh.moveTo(z,y));
   const bg = new THREE.ExtrudeGeometry(sh, {depth: 1.7, bevelEnabled:true, bevelThickness:0.04, bevelSize:0.04, bevelSegments:1}); bg.rotateY(-Math.PI/2); bg.translate(0.85, 0, 0); g.add(new THREE.Mesh(bg, cm));
@@ -1556,7 +1556,23 @@ let patientHead = null;
   const torso = w(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.26, 0.62), skinP), 0, 0.13, -0.35);                          // chest
   w(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.14, 0.34), bloodDark), 0, 0.2, -0.38);                                      // the open chest
   for (const sx of [-1, 1]){ w(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 0.3), steel), sx*0.15, 0.27, -0.38); w(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.12), steel), sx*0.21, 0.3, -0.3).rotation.z = sx*0.6; }   // retractors
-  const heart = w(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshPhongMaterial({color:0x5a0a10, shininess: 40, specular: 0x883030})), 0.02, 0.21, -0.4); heart.scale.set(1, 0.8, 1.1); patientG.userData.heart = heart;
+  // the heart: ventricles, both atria, the aorta arching up and over, the pulmonary trunk, the vena cava, a fat pad and coronary vessels over the surface — wet, and working
+  const heartG = w(new THREE.Group(), 0.02, 0.2, -0.4); patientG.userData.heart = heartG;
+  { const muscle = new THREE.MeshPhongMaterial({color:0x6a1016, shininess: 70, specular: 0xaa5050}), vessel = new THREE.MeshPhongMaterial({color:0x7a2a30, shininess: 60, specular: 0x996060}), vein = new THREE.MeshPhongMaterial({color:0x3a1a3a, shininess: 60, specular: 0x806080}), fat = new THREE.MeshPhongMaterial({color:0xc8b070, shininess: 20, specular: 0x444444});
+    const h = (m, x, y, z) => { m.position.set(x, y, z); heartG.add(m); return m; };
+    const vent = h(new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.075, 12, 10), 0.012), muscle), 0, 0, 0); vent.scale.set(0.95, 0.8, 1.15); vent.rotation.set(0.3, 0, -0.35);          // the ventricles: one lopsided mass, apex pointing down-left
+    const la = h(new THREE.Mesh(new THREE.SphereGeometry(0.038, 9, 7), muscle), -0.045, 0.03, 0.055); la.scale.set(1, 0.8, 0.9);                                                      // left atrium
+    const ra = h(new THREE.Mesh(new THREE.SphereGeometry(0.034, 9, 7), vein), 0.05, 0.028, 0.045); ra.scale.set(0.9, 0.8, 1);                                                             // right atrium, darker, venous
+    heartG.userData.atria = [la, ra]; heartG.userData.nextBeat = 0; heartG.userData.beatAge = 9; heartG.userData.beatStr = 1;
+    const aorta = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0.0, 0.04, 0.02), new THREE.Vector3(0.0, 0.085, 0.0), new THREE.Vector3(-0.03, 0.105, -0.02), new THREE.Vector3(-0.07, 0.09, -0.04), new THREE.Vector3(-0.09, 0.05, -0.05)]), 10, 0.016, 7, false), vessel); heartG.add(aorta);   // aortic arch
+    for (const [x, z] of [[-0.03, -0.015], [-0.05, -0.03], [-0.065, -0.038]]) h(new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.005, 0.03, 5), vessel), x, 0.12, z);                 // the branches off the top of the arch
+    const pulm = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0.035, 0.035, 0.01), new THREE.Vector3(0.03, 0.075, -0.005), new THREE.Vector3(0.0, 0.085, -0.03)]), 8, 0.013, 7, false), vein); heartG.add(pulm);   // pulmonary trunk, crossing in front
+    const cava = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.013, 0.07, 7), vein); cava.position.set(0.065, 0.06, 0.04); cava.rotation.z = -0.15; heartG.add(cava);                  // superior vena cava into the right atrium
+    const fatPad = h(new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.03, 8, 6), 0.01), fat), -0.015, 0.03, 0.045); fatPad.scale.set(1.6, 0.5, 1.0);                                      // fat in the groove between atria and ventricles
+    for (const pts of [ [[-0.02, 0.03, 0.07], [-0.03, 0.0, 0.085], [-0.045, -0.035, 0.07], [-0.05, -0.06, 0.04]], [[0.03, 0.03, 0.065], [0.055, 0.0, 0.055], [0.06, -0.03, 0.03], [0.045, -0.055, 0.0]], [[-0.02, 0.03, 0.07], [0.0, -0.01, 0.085], [0.015, -0.045, 0.07]] ]){   // coronary arteries snaking over the surface
+      heartG.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), 8, 0.0035, 5, false), vessel)); }
+    for (let i=0;i<5;i++){ const d = h(new THREE.Mesh(new THREE.SphereGeometry(0.006 + Math.random()*0.006, 5, 4), bloodDark), (Math.random()-0.5)*0.12, -0.035 - Math.random()*0.02, (Math.random()-0.5)*0.1); d.scale.y = 0.3; }   // blood pooled round it
+  }
   for (const sx of [-1, 1]){ const arm = w(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.6, 8), skinP), sx*0.36, 0.1, -0.3); arm.rotation.x = Math.PI/2; w(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.16), skinP), sx*0.36, 0.1, 0.05); }   // arms out on the boards
   for (const sx of [-1, 1]) w(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.7), padM), sx*0.4, 0.0, -0.2);              // arm boards
   w(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.1, 8), skinP), 0, 0.14, -0.72);                                  // neck
@@ -2717,7 +2733,12 @@ function frame(now){
   if (stopKind === 'tower'){ const sk = Math.random() < 0.05 ? 0.3 : 1; for (const ss of stairSigns){ if (ss.isLight) ss.intensity = 0.5*sk; else ss.material.color.setScalar(0.6 + 0.4*sk); }
     const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1){ toast('second floor'); if (runnerT < 0 && !runner.userData.done){ runner.userData.done = true; setTimeout(startRunner, 700); } } else if (fl === 2) toast('third floor');  } }
   if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
-  if (stopKind === 'clinic'){ const hb = Math.pow(Math.max(0, Math.sin(now*0.0075)), 8); patientG.userData.heart.scale.set(1 + hb*0.25, 0.8 + hb*0.2, 1.1 + hb*0.25);   // it's still going
+  if (stopKind === 'clinic'){ const H = patientG.userData.heart, hd = H.userData;   // atrial fibrillation: the ventricles beat irregularly irregular, fast and uneven; the atria don't beat at all, they quiver
+    hd.nextBeat -= dt; hd.beatAge += dt;
+    if (hd.nextBeat <= 0){ hd.nextBeat = 0.28 + Math.random()*0.65 + (Math.random() < 0.15 ? 0.5 : 0); hd.beatAge = 0; hd.beatStr = 0.5 + Math.random()*0.7; }   // some gaps, some runs, the odd long pause
+    const kick = Math.exp(-hd.beatAge*18) * hd.beatStr;                                                   // a sharp squeeze that lets go
+    H.scale.setScalar(1 + kick*0.16); H.rotation.z = kick*0.07;
+    for (const a of hd.atria){ const q = 1 + (Math.random()-0.5)*0.06; a.scale.x = (a === hd.atria[0] ? 1 : 0.9)*q; a.scale.z = (a === hd.atria[0] ? 0.9 : 1)*(2 - q); }   // fibrillating: a fine, fast, chaotic tremor
     const fk = Math.random() < 0.04 ? 0.4 : 1; for (const l of clinicLights) l.intensity = 0.55*fk; surgLight.intensity = 2.4 * (Math.random() < 0.03 ? 0.5 : 1); }
   if (runnerT >= 0){ runnerT += dt; const u = runnerT/2.6; if (u >= 1){ runner.visible = false; runnerT = -1; } else { runner.position.lerpVectors(runnerFrom, runnerTo, u); runner.position.y = runnerFrom.y + Math.abs(Math.sin(now*0.028))*0.06; for (let i=0;i<2;i++) runnerLegs[i].rotation.x = Math.sin(now*0.028 + i*Math.PI)*0.9; } }
   if (stopKind === 'tower' && crierShake){
