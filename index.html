@@ -1526,7 +1526,7 @@ const bell = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), steel); bell.s
 cbox(0.6, 1.3, 0.5, pumpDark, 16.6, 0.65, -3.5); for (let i=0;i<3;i++) cbox(0.5, 0.02, 0.02, steel, 16.3, 0.35 + i*0.4, -3.5);   // filing cabinet behind
 // corridor wall with three doorways, room partitions, doors hanging ajar
 for (const [z0, z1] of [[-9, -6.6], [-5.4, -0.6], [0.6, 5.4], [6.6, 9]]) cbox(0.25, 3.0, z1 - z0, clinicWall, 19, 1.5, (z0 + z1)/2);
-for (const z of [-6, 0, 6]){ cbox(0.25, 0.8, 1.2, clinicWall, 19, 2.6, z); const hinge = new THREE.Group(); hinge.position.set(19.1, 0, z + 0.6); hinge.rotation.y = -0.6 - (z === 6 ? 0.5 : 0); clinicG.add(hinge); cbox(0.05, 2.1, 1.1, new THREE.MeshLambertMaterial({color:0x6a7a7a}), 0, 1.05, -0.55, hinge); cbox(0.02, 0.3, 0.3, new THREE.MeshLambertMaterial({color:0x202428}), -0.03, 1.5, -0.55, hinge); }   // doors with a little window
+for (const z of [-6, 0, 6]){ cbox(0.25, 0.8, 1.2, clinicWall, 19, 2.6, z); const hinge = new THREE.Group(); hinge.position.set(19.1, 0, z + 0.6); hinge.rotation.y = -(z === 6 ? 1.5 : z === 0 ? 1.25 : 1.4); clinicG.add(hinge); cbox(0.05, 2.1, 1.1, new THREE.MeshLambertMaterial({color:0x6a7a7a}), 0, 1.05, -0.55, hinge); cbox(0.02, 0.3, 0.3, new THREE.MeshLambertMaterial({color:0x202428}), -0.03, 1.5, -0.55, hinge); }   // doors with a little window
 for (const z of [-3, 3]) cbox(8, 3.0, 0.2, clinicWall, 23, 1.5, z);
 // room numbers beside the doors
 [['1', -6], ['2', 0], ['3', 6]].forEach(([n, z]) => { const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.22), new THREE.MeshLambertMaterial({map: textTexP(16, 16, g => { g.fillStyle = '#d8d4c8'; g.fillRect(0,0,16,16); g.fillStyle = '#2a2a2a'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText(n, 8, 12); })})); pl.position.set(18.86, 1.8, z - 0.9); pl.rotation.y = -Math.PI/2; clinicG.add(pl); });
@@ -1554,10 +1554,11 @@ let patientHead = null;
   w(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.06, 1.2), drape), 0, 0.03, 0.1);                                         // drape over the legs
   for (const sx of [-1, 1]){ w(new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.9, 8), drape), sx*0.14, 0.1, 0.35).rotation.x = Math.PI/2; w(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.22), skinP), sx*0.14, 0.1, 0.9); }
   const torso = w(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.26, 0.62), skinP), 0, 0.13, -0.35);                          // chest
-  w(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.14, 0.34), bloodDark), 0, 0.2, -0.38);                                      // the open chest
+  w(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.34), bloodDark), 0, 0.17, -0.38);                                      // the open chest: a dark cavity with blood pooled low in it
+  w(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.03, 0.38), new THREE.MeshPhongMaterial({color:0x7a3a3a, shininess: 30, specular: 0x553333})), 0, 0.265, -0.38);   // the cut edges of the chest wall, raw
   for (const sx of [-1, 1]){ w(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 0.3), steel), sx*0.15, 0.27, -0.38); w(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.12), steel), sx*0.21, 0.3, -0.3).rotation.z = sx*0.6; }   // retractors
   // the heart: ventricles, both atria, the aorta arching up and over, the pulmonary trunk, the vena cava, a fat pad and coronary vessels over the surface — wet, and working
-  const heartG = w(new THREE.Group(), 0.02, 0.2, -0.4); patientG.userData.heart = heartG;
+  const heartG = w(new THREE.Group(), 0.02, 0.27, -0.4); patientG.userData.heart = heartG;   // sitting up in the opening, in the light
   { const muscle = new THREE.MeshPhongMaterial({color:0x6a1016, shininess: 70, specular: 0xaa5050}), vessel = new THREE.MeshPhongMaterial({color:0x7a2a30, shininess: 60, specular: 0x996060}), vein = new THREE.MeshPhongMaterial({color:0x3a1a3a, shininess: 60, specular: 0x806080}), fat = new THREE.MeshPhongMaterial({color:0xc8b070, shininess: 20, specular: 0x444444});
     const h = (m, x, y, z) => { m.position.set(x, y, z); heartG.add(m); return m; };
     const vent = h(new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.075, 12, 10), 0.012), muscle), 0, 0, 0); vent.scale.set(0.95, 0.8, 1.15); vent.rotation.set(0.3, 0, -0.35);          // the ventricles: one lopsided mass, apex pointing down-left
@@ -1571,7 +1572,7 @@ let patientHead = null;
     const fatPad = h(new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.03, 8, 6), 0.01), fat), -0.015, 0.03, 0.045); fatPad.scale.set(1.6, 0.5, 1.0);                                      // fat in the groove between atria and ventricles
     for (const pts of [ [[-0.02, 0.03, 0.07], [-0.03, 0.0, 0.085], [-0.045, -0.035, 0.07], [-0.05, -0.06, 0.04]], [[0.03, 0.03, 0.065], [0.055, 0.0, 0.055], [0.06, -0.03, 0.03], [0.045, -0.055, 0.0]], [[-0.02, 0.03, 0.07], [0.0, -0.01, 0.085], [0.015, -0.045, 0.07]] ]){   // coronary arteries snaking over the surface
       heartG.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), 8, 0.0035, 5, false), vessel)); }
-    for (let i=0;i<5;i++){ const d = h(new THREE.Mesh(new THREE.SphereGeometry(0.006 + Math.random()*0.006, 5, 4), bloodDark), (Math.random()-0.5)*0.12, -0.035 - Math.random()*0.02, (Math.random()-0.5)*0.1); d.scale.y = 0.3; }   // blood pooled round it
+    for (let i=0;i<5;i++){ const d = h(new THREE.Mesh(new THREE.SphereGeometry(0.006 + Math.random()*0.006, 5, 4), bloodDark), (Math.random()-0.5)*0.12, -0.07 - Math.random()*0.02, (Math.random()-0.5)*0.1); d.scale.y = 0.3; }   // blood pooled below it
   }
   for (const sx of [-1, 1]){ const arm = w(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.6, 8), skinP), sx*0.36, 0.1, -0.3); arm.rotation.x = Math.PI/2; w(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.16), skinP), sx*0.36, 0.1, 0.05); }   // arms out on the boards
   for (const sx of [-1, 1]) w(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.7), padM), sx*0.4, 0.0, -0.2);              // arm boards
@@ -1601,6 +1602,7 @@ const clinicBoxes = [
   [10.8, 11.2, -9.2, -1.0], [10.8, 11.2, 1.0, 9.2], [10.8, 27.2, -9.2, -8.8], [10.8, 27.2, 8.8, 9.2], [26.8, 27.2, -9.2, 9.2],   // shell, with the doorway
   [18.85, 19.15, -9.2, -6.6], [18.85, 19.15, -5.4, -0.6], [18.85, 19.15, 0.6, 5.4], [18.85, 19.15, 6.6, 9.2],                   // corridor wall, three doorways
   [19, 27, -3.1, -2.9], [19, 27, 2.9, 3.1],                                                                                     // partitions
+  [19.0, 20.3, -5.5, -5.25], [19.0, 20.3, 0.3, 0.75], [19.0, 20.3, 6.45, 6.75],                                                   // the open doors, where they hang
   [14.9, 16.4, -2.7, 2.7], [16.2, 17.0, -3.8, -3.2], [11.6, 12.4, -8.8, -4.6], [11.6, 12.4, 3.8, 7.2], [11.9, 12.5, -8.8, -8.0],  // desk, cabinet, chairs, cooler
   [22.6, 23.4, -7.0, -5.0], [26.3, 27, -7.7, -6.1], [22.6, 23.4, -1.0, 1.0], [26.3, 27, -1.7, -0.1], [22.5, 23.5, 4.9, 7.1], [26.1, 27, 6.2, 6.8], [23.7, 24.3, 6.1, 6.5],   // tables, cabinets, tray
 ];
@@ -2842,7 +2844,7 @@ function frame(now){
   const sf = speed/SPEED;
   const bob = (Math.sin(t*0.9)*0.004 + Math.sin(t*2.7)*0.0015)*sf;
   if (mode === 'walk'){ if (inDialog){ // turn to face him while talking
-      (stopKind === 'peanut' ? woman : stopKind === 'motel' ? (door103Open ? guest : clerk) : stopKind === 'tower' ? crier : stopKind === 'clinic' ? patientG : attendant).getWorldPosition(_v1); const dx = _v1.x - walker.x, dz = _v1.z - walker.z; const wantYaw = Math.atan2(-dx, -dz); let dy = wantYaw - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy*Math.min(1, dt*3); const headY = _v1.y + (stopKind === 'tower' ? 0.45 : stopKind === 'clinic' ? 0.2 : 1.55), wantPitch = Math.atan2(headY - (walker.h + 1.6), Math.hypot(dx, dz)); pitch += (wantPitch - pitch)*Math.min(1, dt*3); camera.rotation.set(pitch, yaw, 0);
+      (stopKind === 'peanut' ? woman : stopKind === 'motel' ? (door103Open ? guest : clerk) : stopKind === 'tower' ? crier : stopKind === 'clinic' ? patientHead : attendant).getWorldPosition(_v1); const dx = _v1.x - walker.x, dz = _v1.z - walker.z; const wantYaw = Math.atan2(-dx, -dz); let dy = wantYaw - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy*Math.min(1, dt*3); const headY = _v1.y + (stopKind === 'tower' ? 0.45 : stopKind === 'clinic' ? 0 : 1.55), wantPitch = Math.atan2(headY - (walker.h + 1.6), Math.hypot(dx, dz)); pitch += (wantPitch - pitch)*Math.min(1, dt*3); camera.rotation.set(pitch, yaw, 0);
     } else walkStep(dt); }
   else {
     cab.rotation.z = (Math.sin(t*0.6)*0.004 - steer*0.06)*sf; cab.rotation.x = bob;
