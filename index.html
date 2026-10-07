@@ -86,8 +86,12 @@ const TOWER_TIME = 20;     // seconds from the motel to the abandoned building (
 const TOWER_D = MOTEL_D + SPEED*TOWER_TIME + 70;         // where the car stops below it
 const TOWER_X = 6.5;       // road-x where the car parks on the cracked lot in front
 function inTowerZone(d){ return d > TOWER_D - 30 && d < TOWER_D + 30; }
+const CLINIC_TIME = 20;    // seconds from the building to the clinic (set to ~120 for the real game)
+const CLINIC_D = TOWER_D + SPEED*CLINIC_TIME + 70;       // where the car stops at the clinic
+const CLINIC_X = 6.5;
+function inClinicZone(d){ return d > CLINIC_D - 26 && d < CLINIC_D + 26; }
 function inMotelZone(d){ return d > MOTEL_D - 26 && d < MOTEL_D + 30; }
-function inStopZone(d, x){ return (x > 0 && x < 38 && d > STOP_D - 46 && d < STOP_D + 24) || (x > 0 && x < 17 && d > PEANUT_D - 40 && d < PEANUT_D + 16) || (x > 0 && x < 32 && inMotelZone(d)) || (x > 0 && x < 42 && inTowerZone(d)); }   // clearings for the station, the stand and the motel
+function inStopZone(d, x){ return (x > 0 && x < 38 && d > STOP_D - 46 && d < STOP_D + 24) || (x > 0 && x < 17 && d > PEANUT_D - 40 && d < PEANUT_D + 16) || (x > 0 && x < 32 && inMotelZone(d)) || (x > 0 && x < 42 && inTowerZone(d)) || (x > 0 && x < 40 && inClinicZone(d)); }   // clearings for the station, the stand and the motel
 function C(d){ return 45*Math.sin(d*0.0035) + 20*Math.sin(d*0.009+2); }
 function Cp(d){ return 45*0.0035*Math.cos(d*0.0035) + 20*0.009*Math.cos(d*0.009+2); }
 
@@ -238,8 +242,8 @@ function inPeanutZone(d){ return d > PEANUT_D - 40 && d < PEANUT_D + 16; }
 function inStationZone(d){ return d > STOP_D - 46 && d < STOP_D + 24; }
 // how far each wall steps back from the road at a given distance: eased in and out over a long run, so the step never shows as a flat end-face
 function ramp(d, inFn, w){ if (inFn(d)) return 1; let best = 0; for (let s = -w; s <= w; s += 4){ if (inFn(d + s)) best = Math.max(best, 1 - Math.abs(s)/w); } const k = best; return k*k*(3 - 2*k); }
-function nearWallX(d){ return 20 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 22*ramp(d, inStationZone, 70) + 24*ramp(d, inTowerZone, 80); }   // right-hand side only; the left wall never moves
-function farWallX(d){ return 32 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 16*ramp(d, inStationZone, 70) + 18*ramp(d, inTowerZone, 80); }
+function nearWallX(d){ return 20 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 22*ramp(d, inStationZone, 70) + 24*ramp(d, inTowerZone, 80) + 20*ramp(d, inClinicZone, 70); }   // right-hand side only; the left wall never moves
+function farWallX(d){ return 32 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 16*ramp(d, inStationZone, 70) + 18*ramp(d, inTowerZone, 80) + 14*ramp(d, inClinicZone, 70); }
 // each slab is laid along the chord between its x at d and at d+20, so consecutive slabs form one continuous angled wall
 function wallSlab(geo, d, xFn, side){
   const x1 = side > 0 ? xFn(d) : xFn(-1e9), x2 = side > 0 ? xFn(d + 20) : xFn(-1e9), xx = side*(x1 + x2)/2, dx = side*(x2 - x1);
@@ -819,6 +823,7 @@ function shackBox(x0, x1, z0, z1){ return [12.5 + z0, 12.5 + z1, -1 - x1, -1 - x
 const STOPS = {
   station: { group: () => stopG, bounds: [3.0, 36, -20, 42], outside: [[11.1, 12.9, -3.4, 3.4], [22.8, 31.3, -7.8, 3.8], [6.6, 7.4, 8.6, 9.4]], room: null, insideBoxes: null, doorSpotIn: [24.6, 1.4], doorSpotOut: [21.9, 1.4] },
   motel:   { group: () => motelG, bounds: [3.0, 15.6, -22, 20], outside: [[15.5, 23, -17.5, 15.5], [15.05, 16.0, 6.6, 9.1], [3.6, 4.4, 16.6, 17.4], [9.8, 12.3, -20.8, -19.2], [9.9, 12.1, -5.4, -0.6], [13.9, 14.9, 14.1, 14.7]], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
+  clinic:  { group: () => clinicG, bounds: [2.5, 26.8, -10, 10], outside: [], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   tower:   { group: () => towerG, bounds: [2.5, 28.8, -14, 14], outside: [], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   peanut:  { group: () => peanutG, bounds: [3.0, 15.5, -14, 16], outside: [[10.4, 14.8, -3.6, 1.6], [9.0, 10.4, 0.0, 1.4], [4.1, 4.7, 29.6, 30.4], [7.1, 7.9, -6.4, -5.6]], room: shackBox(-2.3, 2.3, -1.8, 1.8), insideBoxes: [ shackBox(-1.9, 0.7, 0.6, 1.2), shackBox(-2.4, 2.4, 1.6, 2.0), shackBox(1.6, 2.4, 1.0, 1.7), shackBox(-2.4, -1.8, -1.45, -0.95) ], doorSpotIn: [11.6, -1.6], doorSpotOut: [9.4, -2.4] },
 };
@@ -1287,7 +1292,7 @@ const beamMat = new THREE.MeshBasicMaterial({map: beamTex, transparent:true, opa
 // 2nd→3rd in the front-left corner (x 12..16, z -10..-2) — so you cross the whole second floor between them.
 const towerG = new THREE.Group(); addThing(towerG, TOWER_D, 0, true);
 const FLOOR_H = 3.6, FLOORS = [0, 3.6, 7.2];
-const STAIR_A = {xw: 24, ze: 10, wallSide: 0}, STAIR_B = {xw: 12, ze: -2, wallSide: 1};   // each stairwell: west edge, entry z (runs go toward ze-8), which side its inner wall is on
+const STAIR_A = {xw: 24, ze: 10, wallSide: 0, backFill: 0}, STAIR_B = {xw: 12, ze: -2, wallSide: 1, backFill: 1.75};   // each stairwell: west edge, entry z (runs go toward ze-8), which side its inner wall is on
 function tbox(w,h,d,mat,x,y,z,parent){ const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); m.position.set(x,y,z); (parent||towerG).add(m); return m; }
 function concTex(base, streaks){ const tx = textTexP(64, 64, g => {
   g.fillStyle = base; g.fillRect(0,0,64,64);
@@ -1340,13 +1345,15 @@ function stairwell(S, base){
   const {xw, ze, wallSide} = S, xc = xw + 2, zc = ze - 4, zb = ze - 8;
   tbox(0.2, FLOOR_H*2, 8, concDark, wallSide ? xw + 4 : xw, base + FLOOR_H, zc);        // the wall facing the floor (two storeys: it walls the hole on the floor above too)
   tbox(4.2, FLOOR_H*2, 0.2, concDark, xc, base + FLOOR_H, zb);                            // back wall
+  if (S.backFill) tbox(4.2, FLOOR_H*2, S.backFill, concDark, xc, base + FLOOR_H, zb - S.backFill/2);   // solid to the outside wall, so there's no slot to slip into behind it
+  tbox(0.8, FLOOR_H*2, 8.4, concDark, wallSide ? xw - 0.4 : xw + 4.4, base + FLOOR_H, zc);   // and the outer side closed off to the exterior columns
   tbox(0.16, FLOOR_H*2, 6, concDark, xc, base + FLOOR_H, ze - 3);                          // divider between the runs
   const xa = xc + 1, xb = xc - 1;                                                          // run A on the east half (up, away from the entry), run B on the west (up, back toward it)
   for (let i=0;i<12;i++){ const h = 0.15*(i+1); tbox(2, 0.16, 0.5, conc, xa, base + h - 0.08, ze - 0.25 - i*0.5); }
-  tbox(2, 0.14, 6.3, concDark, xa, base + 0.74, ze - 3).rotation.x = 0.291;
+  tbox(2, 0.14, 5.6, concDark, xa, base + 0.84, ze - 3).rotation.x = 0.291;
   tbox(4, 0.3, 2, concSlab, xc, base + 1.8 - 0.15, zb + 1);                                                                 // landing
   for (let i=0;i<12;i++){ const h = 0.15*(i+1); tbox(2, 0.16, 0.5, conc, xb, base + 1.8 + h - 0.08, zb + 2 + 0.25 + i*0.5); }
-  tbox(2, 0.14, 6.3, concDark, xb, base + 1.8 + 0.74, ze - 3).rotation.x = -0.291;
+  tbox(2, 0.14, 5.6, concDark, xb, base + 1.8 + 0.72, ze - 3).rotation.x = -0.291;
   const rail = tbox(0.04, 0.04, 6.3, pumpDark, xc + 0.14, base + 0.9 + 0.95, ze - 3); rail.rotation.x = 0.291;
   for (let i=0;i<4;i++){ const z = zb + 2 + 0.7 + i*1.6; tbox(0.03, 0.9, 0.03, pumpDark, xc + 0.14, base + 1.8*(ze - z)/6 + 0.45, z); }
   const rail2 = tbox(0.04, 0.04, 6.3, pumpDark, xc - 0.14, base + 1.8 + 0.9 + 0.95, ze - 3); rail2.rotation.x = -0.291;
@@ -1364,7 +1371,7 @@ for (let i=0;i<10;i++){ const f = FLOORS[1 + (i % 2)]; const wire = new THREE.Me
 tbox(1.0, 0.2, 1.9, new THREE.MeshLambertMaterial({color:0x6a6050}), 23, 3.6 + 0.1, -8.5);                                   // a mattress, floor two
 { const ch = new THREE.Group(); ch.position.set(26, 7.2, -8); ch.rotation.set(0, 0.6, Math.PI/2 - 0.2); towerG.add(ch); for (const [x,z] of [[-0.18,-0.18],[0.18,-0.18],[-0.18,0.18],[0.18,0.18]]) tbox(0.04, 0.45, 0.04, rust, x, 0.22, z, ch); tbox(0.44, 0.04, 0.44, rust, 0, 0.46, 0, ch); tbox(0.44, 0.4, 0.04, rust, 0, 0.68, -0.2, ch); }   // a tipped-over chair, floor three
 // second floor: a heap of trash against a column, and a pill bottle in it
-const trashG = new THREE.Group(); trashG.position.set(16.2, 3.6, 1.0); towerG.add(trashG);
+const trashG = new THREE.Group(); trashG.position.set(18.6, 3.6, -3.2); towerG.add(trashG);   // second floor, right on the way across between the two stairwells
 {
   const paperM = new THREE.MeshLambertMaterial({color:0x8a8478}), canM = new THREE.MeshLambertMaterial({color:0x6a6a66}), bagM = new THREE.MeshLambertMaterial({color:0x1a1a1c, flatShading:true});
   for (let i=0;i<9;i++){ const r = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.18 + Math.random()*0.3, 6, 4), 0.1), rubbleM); r.scale.y = 0.4; r.position.set((Math.random()-0.5)*1.6, 0.05, (Math.random()-0.5)*1.4); r.rotation.y = Math.random()*6.28; trashG.add(r); }
@@ -1372,9 +1379,9 @@ const trashG = new THREE.Group(); trashG.position.set(16.2, 3.6, 1.0); towerG.ad
   for (let i=0;i<7;i++){ const pp = new THREE.Mesh(new THREE.PlaneGeometry(0.22 + Math.random()*0.2, 0.3), paperM); pp.rotation.set(-Math.PI/2 + (Math.random()-0.5)*0.5, Math.random()*6.28, 0); pp.position.set((Math.random()-0.5)*2, 0.03 + Math.random()*0.1, (Math.random()-0.5)*1.8); trashG.add(pp); }
   for (let i=0;i<5;i++){ const cn = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.12, 7), canM); cn.rotation.set(Math.PI/2, 0, Math.random()*6.28); cn.position.set((Math.random()-0.5)*1.8, 0.04, (Math.random()-0.5)*1.6); trashG.add(cn); }
   const bottleTex = textTex(32, 32, g => { g.fillStyle = '#d8d0b8'; g.fillRect(0,0,32,32); g.fillStyle = '#7a3030'; g.fillRect(0, 10, 32, 12); g.fillStyle = '#e8e0d0'; g.fillRect(4, 14, 24, 1); g.fillRect(4, 17, 18, 1); g.fillRect(4, 20, 20, 1); });
-  const arrG = new THREE.Group(); arrG.position.set(-0.35, 0.05, 0.35); arrG.rotation.set(0, 0.7, Math.PI/2 - 0.25); trashG.add(arrG);   // on its side, half in the paper
-  const ab = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.1, 10), new THREE.MeshLambertMaterial({map: bottleTex})); ab.name = 'arr'; arrG.add(ab);
-  const ac2 = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.022, 10), new THREE.MeshLambertMaterial({color:0xf0ece0})); ac2.position.y = 0.06; ac2.name = 'arr'; arrG.add(ac2);
+  const arrG = new THREE.Group(); arrG.position.set(-0.45, 0.07, 0.5); arrG.rotation.set(0.12, 0.7, 0.18); trashG.add(arrG);   // standing, leaning against the bag, label out
+  const ab = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.13, 10), new THREE.MeshPhongMaterial({map: bottleTex, shininess: 30, specular: 0x444444})); ab.name = 'arr'; arrG.add(ab);
+  const ac2 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.026, 10), new THREE.MeshPhongMaterial({color:0xf4f0e4, shininess: 30, specular: 0x444444})); ac2.position.y = 0.078; ac2.name = 'arr'; arrG.add(ac2);
 }
 // a flashlight, dropped just inside the entrance, still on — the only thing you'll see from the door
 const floorTorch = new THREE.Group(); floorTorch.position.set(13.2, 0.04, -1.6); floorTorch.rotation.y = -2.31; towerG.add(floorTorch);   // lying so its beam runs back across the floor toward the stairwell corner
@@ -1404,8 +1411,8 @@ const lotLight = new THREE.PointLight(0x4a5a7a, 0.4, 14, 1.6); lotLight.position
 towerG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
 // walk collision inside, per floor: columns, partitions, and whichever stairwell is on that floor
 const colBoxes = []; for (const x of [17, 23]) for (const z of [-6, 0, 6]) colBoxes.push([x-0.3, x+0.3, z-0.3, z+0.3]);
-const stairBoxesA = [[23.85, 24.15, 1.9, 10.1], [23.85, 28.2, 1.85, 2.15], [25.9, 26.1, 3.9, 10.1]];
-const stairBoxesB = [[15.85, 16.15, -10.1, -1.9], [11.8, 16.15, -10.15, -9.85], [13.9, 14.1, -8.1, -1.9]];
+const stairBoxesA = [[23.85, 24.15, 1.9, 10.1], [23.85, 28.2, 1.85, 2.15], [25.9, 26.1, 3.9, 10.1], [27.95, 29, 1.8, 10.2]];
+const stairBoxesB = [[15.85, 16.15, -10.1, -1.9], [11.8, 16.15, -12, -9.85], [13.9, 14.1, -8.1, -1.9], [11, 12.05, -10.2, -1.8]];
 const towerBoxesByFloor = [
   [...colBoxes, ...stairBoxesA, [16.9, 17.1, 4, 11], [11, 17, 3.9, 4.1]],
   [...colBoxes, ...stairBoxesA, ...stairBoxesB, [19.9, 20.1, -10.5, -5.5], [20.9, 21.1, 2, 8]],
@@ -1429,7 +1436,7 @@ function towerFloorY(x, z, yNow){ // the height of whatever you're standing on �
 const faceTex5 = pixTex('face5.png'), hairTex5 = pixTex('hair5.png');
 const faceM5 = new THREE.MeshLambertMaterial({map: faceTex5}), hairM5 = new THREE.MeshLambertMaterial({map: hairTex5}), skin5 = new THREE.MeshLambertMaterial({color:0xb09078});
 const dressM = new THREE.MeshLambertMaterial({map: textTex(64, 64, g => { g.fillStyle = '#3a2e3a'; g.fillRect(0,0,64,64); for (let i=0;i<500;i++){ g.fillStyle = Math.random()<.5 ? '#322832' : '#443644'; g.fillRect(Math.random()*64|0, Math.random()*64|0, 1, 1); } })});
-const crier = new THREE.Group(); crier.position.set(23.5, 7.2, 4.5); crier.rotation.y = 2.4; towerG.add(crier);   // third floor, out in the open, facing away from the stairs
+const crier = new THREE.Group(); crier.position.set(22.5, 7.2, 0.5); crier.rotation.y = 2.4; towerG.add(crier);   // third floor, out in the open, facing away from the stairs
 let crierShake = null;
 {
   const w = (m, x, y, z) => { m.position.set(x, y, z); crier.add(m); return m; };
@@ -1453,9 +1460,111 @@ headC5.add(new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.24, 0.21), [hairM5, hair
 const hairFall = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.42, 0.16), hairM5); hairFall.position.set(0, -0.08, 0.06); headC5.add(hairFall);   // long hair hanging down over her face
 crier.traverse(o => { o.name = 'crier'; o.layers.set(1); o.layers.enable(0); });
 // the thing lighting her: a dropped flashlight on the floor, pointing across her
-const torchBody = tbox(0.05, 0.05, 0.22, M.chrome, 25.8, 7.2 + 0.03, 2.6); torchBody.rotation.y = -0.9; torchBody.name = 'torch';
-const torch = new THREE.SpotLight(0xffe8c0, 1.6, 9, 0.55, 0.5, 1.4); torch.position.set(25.8, 7.2 + 0.05, 2.6); torch.target.position.set(23.2, 7.2 + 0.3, 4.8); torch.layers.enable(1); towerG.add(torch); towerG.add(torch.target);
+const torchBody = tbox(0.05, 0.05, 0.22, M.chrome, 24.7, 7.2 + 0.03, -1.4); torchBody.rotation.y = -0.9; torchBody.name = 'torch';
+const torch = new THREE.SpotLight(0xffe8c0, 1.6, 9, 0.55, 0.5, 1.4); torch.position.set(24.7, 7.2 + 0.05, -1.4); torch.target.position.set(22.2, 7.2 + 0.3, 0.8); torch.layers.enable(1); towerG.add(torch); towerG.add(torch.target);
 let metCrier = false, towerFloorSeen = 0;
+
+// ───────────────────────── THE CLINIC ─────────────────────────
+// Stand-local coords again. A small single-storey clinic, long shut: a waiting room and reception at the front, a corridor, three exam rooms off it.
+// Footprint x 11..27, z -9..9; door in the front wall at z -1..1; corridor x 17..19; rooms x 19..27 at z -9..-3 / -3..3 / 3..9.
+const clinicG = new THREE.Group(); addThing(clinicG, CLINIC_D, 0, true);
+function cbox(w,h,d,mat,x,y,z,parent){ const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); m.position.set(x,y,z); (parent||clinicG).add(m); return m; }
+const clinicWallTex = textTexP(64, 64, g => { g.fillStyle = '#7a8a78'; g.fillRect(0,0,64,64); for (let i=0;i<900;i++){ g.fillStyle = Math.random()<.5 ? '#708070' : '#849484'; g.fillRect(Math.random()*64|0, Math.random()*64|0, 1, 1); } for (let i=0;i<8;i++){ g.fillStyle = 'rgba(60,40,30,0.3)'; g.fillRect(Math.random()*64|0, 20 + Math.random()*20|0, 1 + (Math.random()*2|0), 10 + Math.random()*34|0); } g.fillStyle = '#4a5a4a'; g.fillRect(0, 40, 64, 2); });   // sickly green paint, a dado rail, water stains
+clinicWallTex.wrapS = clinicWallTex.wrapT = THREE.RepeatWrapping; clinicWallTex.repeat.set(2, 1);
+const clinicWall = new THREE.MeshPhongMaterial({map: clinicWallTex, shininess: 6, specular: 0x161616});
+const tileTex = textTexP(64, 64, g => { for (let y=0;y<4;y++) for (let x=0;x<4;x++){ g.fillStyle = (x+y)%2 ? '#b8b4a8' : '#8a8880'; g.fillRect(x*16, y*16, 16, 16); } for (let i=0;i<700;i++){ g.fillStyle = 'rgba(40,30,20,0.25)'; g.fillRect(Math.random()*64|0, Math.random()*64|0, 1, 1); } g.fillStyle = 'rgba(0,0,0,0.5)'; for (let i=0;i<=64;i+=16){ g.fillRect(i, 0, 1, 64); g.fillRect(0, i, 64, 1); } });
+tileTex.wrapS = tileTex.wrapT = THREE.RepeatWrapping; tileTex.repeat.set(8, 9);
+const tile = new THREE.MeshPhongMaterial({map: tileTex, shininess: 24, specular: 0x333333});
+const ceilingM = new THREE.MeshPhongMaterial({color:0x6a6a62, shininess: 2}), steel = new THREE.MeshPhongMaterial({color:0x9a9ea0, shininess: 60, specular: 0x666666}), sheetM = new THREE.MeshLambertMaterial({map: textTex(64, 64, g => { g.fillStyle = '#c8c4b8'; g.fillRect(0,0,64,64); for (let i=0;i<300;i++){ g.fillStyle = Math.random()<.5 ? '#bcb8ac' : '#d2cec2'; g.fillRect(Math.random()*64|0, Math.random()*64|0, 1, 1); } for (let i=0;i<4;i++){ g.fillStyle = 'rgba(90,20,20,0.45)'; g.beginPath(); g.ellipse(Math.random()*64, Math.random()*64, 3 + Math.random()*7, 2 + Math.random()*5, 0, 0, 7); g.fill(); } })});
+const padM = new THREE.MeshLambertMaterial({color:0x3a4a4a}), bloodDark = new THREE.MeshPhongMaterial({color:0x2a0608, shininess: 50, specular: 0x661010});
+// lot and shell
+const clinicLot = new THREE.Mesh(new THREE.PlaneGeometry(9, 22, 9, 22), asphalt); clinicLot.rotation.x = -Math.PI/2; clinicLot.position.set(6.5, 0.01, 0); clinicG.add(clinicLot);
+cbox(16, 0.2, 18, tile, 19, -0.1, 0);                                                           // floor
+cbox(16.4, 0.3, 18.4, ceilingM, 19, 3.15, 0);                                                   // ceiling / roof slab
+cbox(16.6, 0.25, 18.6, concDark, 19, 3.35, 0);                                                  // parapet
+for (const z of [-9, 9]) cbox(16, 3.0, 0.3, clinicWall, 19, 1.5, z);                             // end walls
+cbox(0.3, 3.0, 18, clinicWall, 27, 1.5, 0);                                                     // back wall
+cbox(0.3, 3.0, 8, clinicWall, 11, 1.5, -5); cbox(0.3, 3.0, 8, clinicWall, 11, 1.5, 5); cbox(0.3, 0.8, 2, clinicWall, 11, 2.6, 0);   // front wall, with the doorway
+// glass door, hanging open on one hinge; boarded windows either side
+{ const d = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.1, 0.9), new THREE.MeshLambertMaterial({color:0x7a8a90, transparent:true, opacity:0.35})); d.position.set(0.3, 1.05, -0.45); const h = new THREE.Group(); h.position.set(10.95, 0, 1.0); h.rotation.y = 0.9; h.add(d); clinicG.add(h); cbox(0.06, 2.1, 0.06, steel, 0.3, 1.05, -0.9, h); }
+for (const z of [-6, -3, 3, 6]){ cbox(0.1, 1.2, 1.6, new THREE.MeshLambertMaterial({color:0x4a3a2a}), 10.9, 1.7, z); for (let i=0;i<4;i++) cbox(0.08, 0.22, 1.7, new THREE.MeshLambertMaterial({color:0x5a4a3a}), 10.84, 1.25 + i*0.3, z); }
+// sign over the door, dead
+const clinicSign = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.7), new THREE.MeshLambertMaterial({map: textTexP(128, 22, g => { g.fillStyle = '#2a3a44'; g.fillRect(0,0,128,22); g.fillStyle = '#9ab0b8'; g.font = 'bold 12px sans-serif'; g.textAlign = 'center'; g.fillText('FAMILY MEDICAL CLINIC', 64, 16); g.fillStyle = '#b02020'; g.fillRect(6, 5, 10, 12); g.fillStyle = '#2a3a44'; g.fillRect(10, 5, 2, 12); g.fillRect(6, 10, 10, 2); for (let i=0;i<50;i++){ g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(Math.random()*128|0, Math.random()*22|0, 2, 1); } })})); clinicSign.position.set(10.82, 3.0, 0); clinicSign.rotation.y = -Math.PI/2; clinicG.add(clinicSign);
+// waiting room: chairs along the front wall, a dead TV bracket, a water cooler, magazines on the floor
+for (const z of [-7.5, -6.3, -5.1, 4.3, 5.5, 6.7]){ cbox(0.5, 0.06, 0.5, padM, 12.0, 0.45, z); cbox(0.06, 0.5, 0.5, padM, 11.75, 0.75, z); for (const [dx,dz] of [[-0.2,-0.2],[0.2,-0.2],[-0.2,0.2],[0.2,0.2]]) cbox(0.04, 0.42, 0.04, steel, 12.0 + dx, 0.21, z + dz); }
+cbox(0.3, 0.6, 0.3, new THREE.MeshLambertMaterial({color:0x9ab0b8, transparent:true, opacity:0.5}), 12.2, 1.2, -8.4); cbox(0.36, 0.9, 0.36, new THREE.MeshLambertMaterial({color:0xd8d8d0}), 12.2, 0.45, -8.4);   // water cooler
+for (let i=0;i<6;i++){ const m = cbox(0.25, 0.01, 0.32, new THREE.MeshLambertMaterial({color: [0x8a6a6a, 0x6a7a8a, 0x8a8a6a][i%3]}), 12.5 + Math.random()*3, 0.01, -8 + Math.random()*16); m.rotation.y = Math.random()*6.28; }
+// reception: a high counter with a dead monitor, a bell, a clipboard; a sign-in sheet
+cbox(1.2, 1.1, 5, new THREE.MeshLambertMaterial({color:0x6a5a48}), 15.6, 0.55, 0); cbox(1.5, 0.08, 5.3, new THREE.MeshLambertMaterial({color:0x4a3a2c}), 15.6, 1.14, 0);
+cbox(0.5, 0.4, 0.45, pumpDark, 15.9, 1.4, 1.2); cbox(0.4, 0.3, 0.02, new THREE.MeshLambertMaterial({color:0x0a0c0c}), 15.64, 1.42, 1.2);   // monitor, dead
+cbox(0.25, 0.02, 0.32, new THREE.MeshLambertMaterial({color:0xe8e4d8}), 15.3, 1.19, -0.6).rotation.y = 0.2;   // the sign-in sheet
+const bell = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), steel); bell.scale.y = 0.6; bell.position.set(15.2, 1.22, 0.3); bell.name = 'bell'; clinicG.add(bell);
+cbox(0.6, 1.3, 0.5, pumpDark, 16.6, 0.65, -3.5); for (let i=0;i<3;i++) cbox(0.5, 0.02, 0.02, steel, 16.3, 0.35 + i*0.4, -3.5);   // filing cabinet behind
+// corridor wall with three doorways, room partitions, doors hanging ajar
+for (const [z0, z1] of [[-9, -6.6], [-5.4, -0.6], [0.6, 5.4], [6.6, 9]]) cbox(0.25, 3.0, z1 - z0, clinicWall, 19, 1.5, (z0 + z1)/2);
+for (const z of [-6, 0, 6]){ cbox(0.25, 0.8, 1.2, clinicWall, 19, 2.6, z); const hinge = new THREE.Group(); hinge.position.set(19.1, 0, z + 0.6); hinge.rotation.y = -0.6 - (z === 6 ? 0.5 : 0); clinicG.add(hinge); cbox(0.05, 2.1, 1.1, new THREE.MeshLambertMaterial({color:0x6a7a7a}), 0, 1.05, -0.55, hinge); cbox(0.02, 0.3, 0.3, new THREE.MeshLambertMaterial({color:0x202428}), -0.03, 1.5, -0.55, hinge); }   // doors with a little window
+for (const z of [-3, 3]) cbox(8, 3.0, 0.2, clinicWall, 23, 1.5, z);
+// room numbers beside the doors
+[['1', -6], ['2', 0], ['3', 6]].forEach(([n, z]) => { const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.22), new THREE.MeshLambertMaterial({map: textTexP(16, 16, g => { g.fillStyle = '#d8d4c8'; g.fillRect(0,0,16,16); g.fillStyle = '#2a2a2a'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText(n, 8, 12); })})); pl.position.set(18.86, 1.8, z - 0.9); pl.rotation.y = -Math.PI/2; clinicG.add(pl); });
+// the rooms: an exam table, a cabinet, an IV stand, a stool; on the first two tables, a body under a sheet
+function examRoom(zc, body){
+  cbox(0.7, 0.1, 1.9, padM, 23, 0.8, zc); cbox(0.6, 0.7, 1.7, steel, 23, 0.4, zc);                      // table
+  cbox(0.4, 0.25, 0.4, padM, 23, 0.95, zc + 0.75);                                                       // the raised head end
+  cbox(0.5, 0.9, 1.6, new THREE.MeshLambertMaterial({color:0xb8b8b0}), 26.6, 0.45, zc - 1.4); cbox(0.5, 0.03, 1.6, steel, 26.6, 0.91, zc - 1.4);   // cabinet
+  cbox(0.03, 1.8, 0.03, steel, 24.2, 0.9, zc - 0.9); cbox(0.3, 0.02, 0.3, steel, 24.2, 1.8, zc - 0.9); cbox(0.12, 0.25, 0.06, new THREE.MeshLambertMaterial({color:0xc8c0a8, transparent:true, opacity:0.7}), 24.3, 1.6, zc - 0.9);   // IV stand, a bag still hanging
+  cbox(0.35, 0.05, 0.35, padM, 21.5, 0.5, zc + 0.5); cbox(0.04, 0.5, 0.04, steel, 21.5, 0.25, zc + 0.5);  // stool
+  if (body){ const b = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.5, 10, 8), 0.08), sheetM); b.scale.set(0.6, 0.42, 1.8); b.position.set(23, 1.0, zc - 0.05); clinicG.add(b);   // under the sheet
+    const hd = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), sheetM); hd.scale.set(0.9, 0.7, 1.0); hd.position.set(23, 1.12, zc + 0.78); clinicG.add(hd);
+    for (const sx of [-1, 1]) cbox(0.09, 0.06, 0.22, new THREE.MeshLambertMaterial({color:0x8a7a6a}), 23 + sx*0.14, 0.9, zc - 0.95);   // feet out the end
+    cbox(0.08, 0.01, 0.12, new THREE.MeshLambertMaterial({color:0xe8e0c8}), 23 + 0.14, 0.94, zc - 1.0); }     // a toe tag
+}
+examRoom(-6, true); examRoom(0, true);
+// room 3: the operating table. A figure open on it, mid-surgery — and not quite finished with
+const opT = new THREE.Group(); opT.position.set(23, 0, 6); clinicG.add(opT);
+cbox(0.8, 0.08, 2.0, padM, 0, 0.9, 0, opT); cbox(0.5, 0.86, 0.6, steel, 0, 0.43, 0, opT); cbox(0.9, 0.04, 2.1, steel, 0, 0.86, 0, opT);
+const patientG = new THREE.Group(); patientG.position.set(0, 0.94, 0); opT.add(patientG);
+let patientHead = null;
+{
+  const skinP = new THREE.MeshLambertMaterial({color:0xb8a090}), drape = new THREE.MeshLambertMaterial({color:0x4a7a78});
+  const w = (m, x, y, z) => { m.position.set(x, y, z); patientG.add(m); return m; };
+  w(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.06, 1.2), drape), 0, 0.03, 0.1);                                         // drape over the legs
+  for (const sx of [-1, 1]){ w(new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.9, 8), drape), sx*0.14, 0.1, 0.35).rotation.x = Math.PI/2; w(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.22), skinP), sx*0.14, 0.1, 0.9); }
+  const torso = w(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.26, 0.62), skinP), 0, 0.13, -0.35);                          // chest
+  w(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.14, 0.34), bloodDark), 0, 0.2, -0.38);                                      // the open chest
+  for (const sx of [-1, 1]){ w(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 0.3), steel), sx*0.15, 0.27, -0.38); w(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.12), steel), sx*0.21, 0.3, -0.3).rotation.z = sx*0.6; }   // retractors
+  const heart = w(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshPhongMaterial({color:0x5a0a10, shininess: 40, specular: 0x883030})), 0.02, 0.21, -0.4); heart.scale.set(1, 0.8, 1.1); patientG.userData.heart = heart;
+  for (const sx of [-1, 1]){ const arm = w(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.6, 8), skinP), sx*0.36, 0.1, -0.3); arm.rotation.x = Math.PI/2; w(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.16), skinP), sx*0.36, 0.1, 0.05); }   // arms out on the boards
+  for (const sx of [-1, 1]) w(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.7), padM), sx*0.4, 0.0, -0.2);              // arm boards
+  w(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.1, 8), skinP), 0, 0.14, -0.72);                                  // neck
+  patientHead = w(new THREE.Group(), 0, 0.16, -0.86);
+  const faceTexP = textTexP(96, 128, g => { g.fillStyle = '#b8a090'; g.fillRect(0,0,96,128); for (let i=0;i<2000;i++){ g.fillStyle = Math.random()<.5 ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.08)'; g.fillRect(Math.random()*96|0, Math.random()*128|0, 1, 1); } g.fillStyle = '#2a2020'; g.fillRect(24, 54, 16, 4); g.fillRect(56, 54, 16, 4); g.fillRect(40, 86, 16, 2); });   // placeholder until there's a photo
+  patientHead.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.24), [skinP, skinP, new THREE.MeshLambertMaterial({map: faceTexP}), skinP, skinP, new THREE.MeshLambertMaterial({color:0x2a2420})]));   // face up (+y)
+  patientHead.children[0].rotation.x = 0;
+}
+patientG.traverse(o => o.name = 'patient');
+// surgical lamp over the table, the one light that still works — red
+cbox(0.06, 1.0, 0.06, steel, 0, 2.6, -0.3, opT); const lampHead = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.3, 0.18, 12), steel); lampHead.position.set(0, 2.05, -0.3); opT.add(lampHead);
+const lampFace = new THREE.Mesh(new THREE.CircleGeometry(0.28, 12), new THREE.MeshBasicMaterial({color:0xaa1016})); lampFace.rotation.x = Math.PI/2; lampFace.position.set(0, 1.955, -0.3); opT.add(lampFace);
+const surgLight = new THREE.SpotLight(0xb01018, 2.4, 6, 0.8, 0.5, 1.2); surgLight.position.set(0, 1.95, -0.3); surgLight.target.position.set(0, 0.9, -0.3); opT.add(surgLight); opT.add(surgLight.target); surgLight.layers.enable(1);
+// an instrument tray on a stand; a monitor cart, dead; the floor around the table
+cbox(0.5, 0.02, 0.35, steel, 1.0, 0.95, 0.3, opT); cbox(0.03, 0.9, 0.03, steel, 1.0, 0.5, 0.3, opT); for (let i=0;i<5;i++) cbox(0.015, 0.012, 0.16 + Math.random()*0.08, steel, 0.85 + i*0.07, 0.97, 0.3 + (Math.random()-0.5)*0.1, opT);
+cbox(0.5, 0.45, 0.4, pumpDark, 26.4, 1.25, 6.5); cbox(0.5, 0.8, 0.4, pumpDark, 26.4, 0.4, 6.5);
+const floorBlood = new THREE.Mesh(new THREE.CircleGeometry(0.7, 10), bloodDark); floorBlood.rotation.x = -Math.PI/2; floorBlood.position.set(22.6, 0.012, 5.6); floorBlood.scale.set(1.3, 1, 0.8); clinicG.add(floorBlood);
+// light: dim crimson everywhere, like the car's — a few dying red fixtures and the exit sign
+const clinicLights = [];
+for (const [x, z] of [[14, -4], [14, 4], [18, -6], [18, 0], [18, 6], [23, -6], [23, 0]]){ const l = new THREE.PointLight(0x8a0a12, 0.55, 7, 1.6); l.position.set(x, 2.8, z); l.layers.enable(1); clinicG.add(l); clinicLights.push(l); cbox(1.2, 0.08, 0.3, new THREE.MeshBasicMaterial({color:0x3a0608}), x, 3.0, z); }
+const exitSign = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.25), new THREE.MeshBasicMaterial({map: textTexP(56, 20, g => { g.fillStyle = '#1a0608'; g.fillRect(0,0,56,20); g.fillStyle = '#e03030'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.fillText('EXIT', 28, 15); })})); exitSign.position.set(11.4, 2.75, 0); exitSign.rotation.y = Math.PI/2; clinicG.add(exitSign);
+const clinicLot2 = new THREE.PointLight(0x6a0a10, 0.5, 12, 1.6); clinicLot2.position.set(9, 3.5, 0); clinicLot2.layers.enable(1); clinicG.add(clinicLot2);
+clinicG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
+// walk collision (clinic-local)
+const clinicBoxes = [
+  [10.8, 11.2, -9.2, -1.0], [10.8, 11.2, 1.0, 9.2], [10.8, 27.2, -9.2, -8.8], [10.8, 27.2, 8.8, 9.2], [26.8, 27.2, -9.2, 9.2],   // shell, with the doorway
+  [18.85, 19.15, -9.2, -6.6], [18.85, 19.15, -5.4, -0.6], [18.85, 19.15, 0.6, 5.4], [18.85, 19.15, 6.6, 9.2],                   // corridor wall, three doorways
+  [19, 27, -3.1, -2.9], [19, 27, 2.9, 3.1],                                                                                     // partitions
+  [14.9, 16.4, -2.7, 2.7], [16.2, 17.0, -3.8, -3.2], [11.6, 12.4, -8.8, -4.6], [11.6, 12.4, 3.8, 7.2], [11.9, 12.5, -8.8, -8.0],  // desk, cabinet, chairs, cooler
+  [22.6, 23.4, -7.0, -5.0], [26.3, 27, -7.7, -6.1], [22.6, 23.4, -1.0, 1.0], [26.3, 27, -1.7, -0.1], [22.5, 23.5, 4.9, 7.1], [26.1, 27, 6.2, 6.8], [23.7, 24.3, 6.1, 6.5],   // tables, cabinets, tray
+];
+let metPatient = false;
 
 // ───────────────────────── THE DEER ─────────────────────────
 // fur: mottled tan-brown with a darker dorsal band; lathe-built body parts so the silhouette is continuous, not stacked blobs
@@ -1582,7 +1691,8 @@ let raining = false, rainLevel = 0, indoors = false;
 function rainStep(dt){
   rainLevel += ((raining ? 1 : 0) - rainLevel) * Math.min(1, dt*0.08);
   rainMat.opacity = rainLevel*0.55; rain.visible = rainLevel > 0.01;
-  indoors = false; if (mode === 'walk' && stopKind === 'tower'){ const q = towerG.worldToLocal(new THREE.Vector3(walker.x, 0, walker.z)); indoors = q.x > 11 && q.x < 29 && Math.abs(q.z) < 12; }   // under the slabs: no rain on you
+  indoors = false; if (mode === 'walk' && stopKind === 'tower'){ const q = towerG.worldToLocal(new THREE.Vector3(walker.x, 0, walker.z)); indoors = q.x > 11 && q.x < 29 && Math.abs(q.z) < 12; }
+  if (mode === 'walk' && stopKind === 'clinic'){ const q = clinicG.worldToLocal(new THREE.Vector3(walker.x, 0, walker.z)); indoors = q.x > 11 && q.x < 27 && Math.abs(q.z) < 9; }   // under the slabs: no rain on you
   if (indoors) rain.visible = false; if (!rain.visible) return;
   rainGeo.setDrawRange(0, Math.floor(rainLevel*RAIN_N)*2);
   const drift = speed*dt;                                   // the world slides past the car, so the rain does too
@@ -1627,12 +1737,12 @@ function hvacTex(){
   g.fillStyle = '#3f8fd0'; g.fillRect(36,26,8,2); g.fillStyle = '#d04a3a'; g.fillRect(52,26,8,2);
   return pixelTex(c);
 }
-function gateTex(){
+function gateTex(gear){ // gear: index into P R N D 2 L — that letter lit orange, the marker beside it
   const c = document.createElement('canvas'); c.width = 32; c.height = 64; const g = c.getContext('2d');
   g.fillStyle = '#141416'; g.fillRect(0,0,32,64); g.fillStyle = '#2a2a2e'; g.fillRect(13,4,6,56);
-  g.fillStyle = '#d8d2c0'; g.font = 'bold 8px sans-serif'; g.textAlign = 'left';
-  ['P','R','N','D','2','L'].forEach((l,i)=> g.fillText(l, 22, 11 + i*9));
-  g.fillStyle = '#ff5a3a'; g.fillRect(22, 29, 6, 1.5);
+  g.font = 'bold 8px sans-serif'; g.textAlign = 'left';
+  ['P','R','N','D','2','L'].forEach((l,i)=> { g.fillStyle = i === gear ? '#ff7a4a' : '#d8d2c0'; g.fillText(l, 22, 11 + i*9); });
+  g.fillStyle = '#ff5a3a'; g.fillRect(13, 8 + gear*9, 6, 1.5);
   return pixelTex(c);
 }
 function headlinerTex(){
@@ -1889,8 +1999,10 @@ for (const x of [-0.56, 0.55]){
 }
 // --- console: shifter, gate, parking brake, cupholders
 box(0.4, 0.3, 1.1, plastic, 0.06, 0.3, -0.25);
-const gate = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.26), new THREE.MeshBasicMaterial({map: gateTex()})); gate.position.set(0.06, 0.455, -0.45); gate.rotation.x = -Math.PI/2; cab.add(gate);
-const shifter = new THREE.Group(); shifter.position.set(0.06, 0.45, -0.42); shifter.rotation.x = 0.25; cab.add(shifter);
+const gateMat = new THREE.MeshBasicMaterial({map: gateTex(3)}); const gate = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.26), gateMat); gate.position.set(0.06, 0.455, -0.45); gate.rotation.x = -Math.PI/2; cab.add(gate);
+const shifter = new THREE.Group(); shifter.position.set(0.06, 0.45, -0.42); shifter.rotation.x = 0.3; cab.add(shifter);
+let gearTarget = 0.3;   // the stick leans back in D, forward in P
+function setGear(g){ gearTarget = g === 'P' ? -0.35 : 0.3; gateMat.map = gateTex(g === 'P' ? 0 : 3); gateMat.needsUpdate = true; }
 const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, 0.22, 6), M.chrome); stick.position.y = 0.11; shifter.add(stick);
 const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), rubber); knob.scale.set(1, 0.8, 1.2); knob.position.y = 0.24; knob.name = 'shifter'; shifter.add(knob);
 const boot = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.08, 6), rubber); boot.position.y = 0.03; shifter.add(boot);
@@ -1911,6 +2023,10 @@ function bottle(name, sub, band, tag, x, z, rot){
 const betaParts = bottle('METOPROLOL', '50 mg · TAKE DAILY', '#3a6fb5', 'beta', -0.08, -0.05, 0.3);
 const thinnerParts = bottle('WARFARIN', '5 mg · TAKE DAILY', '#8a3ab5', 'thinner', 0.07, 0.0, -0.5);
 photo.position.set(0.0, 0.012, 0.07); photo.rotation.x = -Math.PI/2; photo.rotation.z = 0.25; consoleItems.add(photo);
+// the flashlight, once its battery has gone: it ends up in the glovebox after the building
+const gloveTorch = new THREE.Group(); gloveTorch.position.set(-0.02, 0.085, -0.02); gloveTorch.rotation.set(0, 0.35, Math.PI/2); gloveHinge.add(gloveTorch); gloveTorch.visible = false;
+{ const b = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.026, 0.22, 8), new THREE.MeshLambertMaterial({color:0x3a3a3c})); gloveTorch.add(b); const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.028, 0.06, 8), new THREE.MeshLambertMaterial({color:0x2a2a2c})); hd.position.y = 0.13; gloveTorch.add(hd); gloveTorch.traverse(o => o.name = 'deadtorch'); }
+let torchDead = false;
 const sd = new THREE.Group(); sd.position.set(0.1, 0.1, -0.055); sd.rotation.z = Math.PI/2; sd.rotation.x = 0.2; gloveHinge.add(sd); sd.visible = false;
 const sdHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.012, 0.09, 8), new THREE.MeshLambertMaterial({color:0xd8b23a})); sdHandle.name = 'screwdriver'; sd.add(sdHandle);
 const sdShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.13, 6), M.chrome); sdShaft.position.y = -0.11; sdShaft.name = 'screwdriver'; sd.add(sdShaft);
@@ -2042,7 +2158,7 @@ const domeLight = new THREE.PointLight(0xffb060, 0, 4.0, 1.6); domeLight.positio
 let domeOn = false, domeLevel = 0;
 function setDome(on){ domeOn = on; toast(domeOn ? 'dome light: on' : 'dome light: off'); }
 
-const interactables = [knob, ...cab.children.filter(o => o.name === 'doorIn'), powerKnob, tuneKnob, stereo, glove, latch, mirror, sideMirror, domeSwitch, domeLens, domeHousing, lighterKnob, pillBody, pillCap, acetBody, acetCap, photo, consoleLid, consoleLatch, ...betaParts, ...thinnerParts, sdHandle, sdShaft, sdTip, ...visors.map(o => o.h.children[0]), ...visors.map(o => o.van)];
+const interactables = [knob, ...cab.children.filter(o => o.name === 'doorIn'), powerKnob, tuneKnob, stereo, glove, latch, mirror, sideMirror, domeSwitch, domeLens, domeHousing, lighterKnob, pillBody, pillCap, acetBody, acetCap, photo, ...gloveTorch.children, consoleLid, consoleLatch, ...betaParts, ...thinnerParts, sdHandle, sdShaft, sdTip, ...visors.map(o => o.h.children[0]), ...visors.map(o => o.van)];
 
 // ───────────────────────── LOOKING AROUND ─────────────────────────
 let yaw = 0, pitch = -0.1, dragging = false, lx = 0, ly = 0, moved = 0;
@@ -2086,7 +2202,7 @@ function tap(e){
   ndc.set((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
   ray.setFromCamera(ndc, camera);
   if (mode === 'walk'){
-    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : [])], true).find(i => shown(i.object));
+    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : []), ...(stopKind === 'clinic' ? [patientG, bell] : [])], true).find(i => shown(i.object));
     if (h && h.distance < 3.4){
       const nm = h.object.name;
       if (nm === 'doorOut'){ if (holdingNozzle){ thought('Not with this in my hand.'); } else enterCar(); }
@@ -2110,13 +2226,15 @@ function tap(e){
         sfx('squeak', 0.55); bathSwing = 2.0;
         fadeTo(()=>{ inBath = !inBath; const sp = inBath ? [31.6, -6.6] : [30.0, -7.0]; const spot = stopG.localToWorld(new THREE.Vector3(sp[0], 0, sp[1])); walker.x = spot.x; walker.z = spot.z; yaw = inBath ? -Math.PI/2 : Math.PI/2; pitch = -0.1; toast(inBath ? 'restroom' : 'store'); });
       }
-      else if (nm === 'drinks'){ inspect('They all have caffeine. Can\u2019t have caffeine.'); }
+      else if (nm === 'drinks'){ sfx('ui', 0.25); thought('They all have caffeine. Can\u2019t have caffeine.'); }
       else if (nm === 'bathmirror'){ thought('It\u2019s too dark. I can\u2019t see myself.'); }
       else if (nm === 'crier'){ startDialogCrier(); }
+      else if (nm === 'patient'){ startDialogPatient(); }
+      else if (nm === 'bell'){ sfx('ui', 0.25); thought('Nobody\u2019s coming.'); }
       else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the green sign'), 3200); }
       else if (nm === 'arr'){ inspect('These are… my emergency antiarrhythmics. For my heart.'); }
       else if (nm === 'vend'){ sfx('ui', 0.25); thought('Can\u2019t. They all have caffeine.'); }
-      else if (nm === 'snack'){ inspect('I\u2019m not hungry.'); }
+      else if (nm === 'snack'){ sfx('ui', 0.25); thought('I\u2019m not hungry.'); }
       else if (nm === 'ccb'){ inspect('That\u2019s… my calcium channel blocker. For my heart.'); }
       else if (nm === 'clerk'){ startDialogClerk(); }
       else if (nm === 'roomdoor'){ sfx('locked', 0.6); setTimeout(()=> thought('Locked.'), 350); }
@@ -2158,22 +2276,25 @@ function tap(e){
     else if (stopKind === 'deer' && !deerCleared) thought('It\u2019s still in the way.');
     else if (stopKind === 'motel' && !talkedClerk) thought('I should see about a room.');
     else if (stopKind === 'tower' && !metCrier) thought('There\u2019s a light on up there.');
+    else if (stopKind === 'clinic' && !metPatient) thought('Someone\u2019s in there.');
     else {
       if (stopKind === 'peanut'){ startLegOne(); stopKind = 'station'; stopAt = STOP_D; }
       else if (stopKind === 'station'){ startLegTwo(); carNozzle.visible = false; liveHose.visible = false; if (liveHose.userData.hn) showNozzle(liveHose.userData.hn, true); liveHose.userData.hn = null; fuelOpen = false; stopKind = 'deer'; stopAt = DEER_D - 6; }
       else if (stopKind === 'deer'){ startLegThree(); stopKind = 'motel'; stopAt = MOTEL_D; }
       else if (stopKind === 'motel'){ leg = Math.max(leg, 4); stopKind = 'tower'; stopAt = TOWER_D; }   // leg four: past the motel the fog closes in for good
-      else { leg = Math.max(leg, 5); stopKind = 'road'; stopAt = null; }   // leg five: past the building, the fog closes in further
-      mode = 'drive'; departed = true; shifter.rotation.x = 0.55; sfx('ui', 0.25); toast('back on the road');
+      else if (stopKind === 'tower'){ leg = Math.max(leg, 5); stopKind = 'clinic'; stopAt = CLINIC_D; }   // leg five: past the building, the fog closes in further
+      else { stopKind = 'road'; stopAt = null; }
+      mode = 'drive'; departed = true; setGear('D'); sfx('ui', 0.25); toast('back on the road');
     }
     return;
   }
   if (hit.object.name === 'stereo' || hit.object.name === 'power'){ stereoOn = !stereoOn; sfx('ui', 0.22); applyStation(); toast(stereoOn ? 'stereo: on' : 'stereo: off'); }
   if (hit.object.name === 'tune'){ if (!stereoOn) return; station = (station + 1) % STATIONS.length; tuneKnob.rotation.z += 0.6; sfx('ui', 0.18); tuneBurst = 0.35; applyStation(); toast('tuning… ' + STATIONS[station].label); }
-  if (hit.object.name === 'glovebox'){ gloveOpen = !gloveOpen; lidSfx(gloveOpen); if (gloveOpen){ pills.visible = sd.visible = true; } }
+  if (hit.object.name === 'glovebox'){ gloveOpen = !gloveOpen; lidSfx(gloveOpen); if (gloveOpen){ pills.visible = sd.visible = true; gloveTorch.visible = torchDead; } }
+  if (hit.object.name === 'deadtorch'){ sfx('ui', 0.25); thought('I think the battery died.'); }
   if (hit.object.name === 'pills'){ inspect('Ibuprofen, for my migraines.'); }
   if (hit.object.name === 'acet'){ inspect('Acetaminophen. For my pain. It doesn\u2019t work very well.'); }
-  if (hit.object.name === 'photo'){ inspect('A photograph. I don\u2019t remember when it was taken.'); }
+  if (hit.object.name === 'photo'){ inspect(crimsonOn ? 'A photograph, of me and my mom. It makes me sad.' : 'A photograph. I don\u2019t remember when it was taken.'); }
   if (hit.object.name === 'console'){ consoleOpen = !consoleOpen; lidSfx(consoleOpen); if (consoleOpen) consoleItems.visible = true; }
   if (hit.object.name === 'visor'){ const vs = visors.find(o => o.h === hit.object.parent); vs.open = !vs.open; sfx('ui', 0.22); }
   if (hit.object.name === 'vanity'){ sfx('ui', 0.18); thought('It\u2019s too dark. I can\u2019t see myself.'); }
@@ -2189,19 +2310,20 @@ function tap(e){
 const fadeEl = document.getElementById('fade'); let fading = false;
 function fadeTo(fn){ if (fading) return; fading = true; fadeEl.style.opacity = 1; setTimeout(()=>{ fn(); setTimeout(()=>{ fadeEl.style.opacity = 0; fading = false; }, 250); }, 750); }
 function exitCar(){
-  sfx('squeak', 0.5);
+  sfx('ui', 0.25);
   fadeTo(()=>{
     sfx('door2', 0.7);   // the car door shutting behind you, in the dark
     mode = 'walk'; ext.visible = true; cab.visible = false; cab.rotation.set(0,0,0); handTorch.visible = hasTorch;
     walker.x = -1.9; walker.z = -0.1; walker.h = 0; yaw = stopKind === 'deer' ? 0.3 : -Math.PI/2; pitch = -0.08;   // by the driver's door; at the deer, looking up the road
     if (stopKind === 'motel') toast('the office is to your right, under the sign');
     if (stopKind === 'tower'){ toast('the building is to your right — the way in is under the sign'); playBed('hum', 3); }
+    if (stopKind === 'clinic') toast('the clinic is to your right');
     toast('drag to look · joystick / WASD to walk · tap the door handle to get back in');
   });
 }
 function enterCar(){
-  sfx('ui', 0.2); sfx('squeak', 0.45);
-  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower'){ playBed('atmo3', 4); if (metCrier){ crimsonOn = true; crimson = 1; } } mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
+  sfx('ui', 0.25);
+  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower'){ playBed('atmo3', 4); if (metCrier){ crimsonOn = true; crimson = 1; torchDead = true; hasTorch = false; } } mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
 }
 function walkStep(dt){
   // input: joystick or keys, relative to where you're looking
@@ -2244,7 +2366,7 @@ function walkStep(dt){
     camera.position.set(walker.x, walker.h + 1.6 + Math.sin(walker.bobT)*0.025*Math.min(1, m), walker.z); camera.rotation.set(pitch, yaw, 0);
     return;
   }
-  const boxes = inside ? (inBath ? bathBoxes : (S.insideBoxes || insideBoxes)) : [ [c.x-1.05, c.x+1.05, c.z-2.5, c.z+2.5], ...S.outside ];
+  const boxes = inside ? (inBath ? bathBoxes : (S.insideBoxes || insideBoxes)) : [ [c.x-1.05, c.x+1.05, c.z-2.5, c.z+2.5], ...S.outside, ...(stopKind === 'clinic' ? clinicBoxes : []) ];
   const rb = inside ? (inBath ? bathRoom : (S.room || roomBounds)) : null;
   if (rb){ p.x = Math.max(rb[0], Math.min(rb[1], p.x)); p.z = Math.max(rb[2], Math.min(rb[3], p.z)); }
   for (const [x0,x1,z0,z1] of boxes){
@@ -2313,6 +2435,11 @@ function startDialogCrier(){
   if (metCrier){ crying(); return; }
   say('*crying*', [['What’s wrong?', () => say('I don’t want you to go. Please. Please don’t go. My little baby. I can’t be without you. I can’t.', [['Do I know you?', plead], ['Go where?', plead]])]]);
 }
+function startDialogPatient(){
+  inDialog = true; dlgEl.style.display = 'block'; joy = null; stickEl.style.display = 'none'; dragging = false; dlgName.textContent = 'ROOM 3';
+  metPatient = true;
+  say('…', [['Leave.', endDialog]]);   // the lines for this one are still to come
+}
 function knock(){ if (!ac) return; for (let i=0;i<3;i++) setTimeout(()=> click(0.7, 110 + Math.random()*20), i*260); }
 function startDialogClerk(){
   inDialog = true; dlgEl.style.display = 'block'; joy = null; stickEl.style.display = 'none'; dragging = false; dlgName.textContent = 'NIGHT CLERK';
@@ -2360,7 +2487,7 @@ function sfx(name, vol){ // play a loaded sample once; falls back to a click unt
 }
 function startPumpHum(){ if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sawtooth'; o.frequency.value = 58; const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220; g.gain.value = 0.05; o.connect(f); f.connect(g); g.connect(master); o.start(); pumpHum = {o, g}; }
 function stopPumpHum(){ if (!pumpHum) return; pumpHum.g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.3); pumpHum.o.stop(ac.currentTime + 0.35); pumpHum = null; }
-let radioWant = 0, radioOutside = false, rainOut = null, rainCar = null;
+let radioWant = 0, radioOutside = false, rainOut = null, rainCar = null, cry = null;
 let ac = null, radioGain = null, master = null, radioFilter = null, radioEl = null, tuneBurst = 0, engineGain = null, windGain = null;
 function applyStation(){
   drawClock(clockStr);
@@ -2406,10 +2533,7 @@ function lidSfx(open){ // glovebox / console lid: the scrape sample when it open
   if (open){ if (samples.lid){ sfx('lid', 0.5); return; }
     tick(t, 2200, 0.25, 0.02); burst(t + 0.005, 0.05, 'bandpass', 1400, 1.2, 0.35);                     // thumb on the latch, the catch letting go
     burst(t + 0.14, 0.09, 'lowpass', 260, 0.8, 0.55); burst(t + 0.15, 0.04, 'bandpass', 700, 1.0, 0.12);  // the lid landing on its stops
-  } else {
-    burst(t, 0.06, 'lowpass', 420, 0.7, 0.3);                                                             // the lid swinging up through the air
-    burst(t + 0.07, 0.05, 'lowpass', 220, 0.8, 0.5); tick(t + 0.075, 2600, 0.3, 0.018); burst(t + 0.08, 0.035, 'bandpass', 1800, 1.5, 0.25);   // shut, and the latch snapping home
-  }
+  } else sfx('ui', 0.25);                                                                                   // shut: the ui click
 }
 function click(vol, freq){ // short mechanical click
   if (!ac) return;
@@ -2426,6 +2550,7 @@ function startAudio(){
   // the two rain beds: a gentle downpour outside, rain on the car roof inside — level-matched, crossfaded by where you are
   const rainBed = (url, cb) => fetch(url).then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)).then(buf => { const src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.loopStart = 0.06; src.loopEnd = buf.duration - 0.06; const g = ac.createGain(); g.gain.value = 0; src.connect(g); g.connect(out); src.start(0, 0.06); cb(g); }).catch(()=>{});
   rainBed('rainloop_out.mp3', g => rainOut = g); rainBed('rainloop_car.mp3', g => rainCar = g);
+  fetch('cry.mp3').then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)).then(buf => { const src = ac.createBufferSource(); src.buffer = buf; src.loop = true; const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400; const g = ac.createGain(); g.gain.value = 0; src.connect(f); f.connect(g); g.connect(out); src.start(); cry = {g, f}; }).catch(()=>{});
   playBed(startBed, 4);   // the score: a low atmosphere under everything from the first mile, until the gas station is behind you loadSample('locked', 'locked.wav');   // door1: a lighter latch for the store / shack / restroom doors; door2: the heavier thunk of a car door and the 103 slam
   // engine drone
   const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 170;
@@ -2478,11 +2603,11 @@ function frame(now){
     const rem = stopAt - t;
     const target = Math.max(0, Math.min(SPEED, Math.sqrt(Math.max(0, 2*1.6*rem))));
     speed = Math.min(target, speed + 2.2*dt);                             // never faster than the stopping curve, and accelerate gently
-    if (stopKind === 'station' || stopKind === 'peanut' || stopKind === 'motel' || stopKind === 'tower'){ const px = stopKind === 'station' ? PUMP_X : stopKind === 'motel' ? MOTEL_X : stopKind === 'tower' ? TOWER_X : PEANUT_X; const k = THREE.MathUtils.smoothstep(THREE.MathUtils.clamp((34 - rem)/26, 0, 1), 0, 1); lane = LANE + (-px - LANE)*k; }
+    if (stopKind === 'station' || stopKind === 'peanut' || stopKind === 'motel' || stopKind === 'tower' || stopKind === 'clinic'){ const px = stopKind === 'station' ? PUMP_X : stopKind === 'motel' ? MOTEL_X : stopKind === 'tower' ? TOWER_X : stopKind === 'clinic' ? CLINIC_X : PEANUT_X; const k = THREE.MathUtils.smoothstep(THREE.MathUtils.clamp((34 - rem)/26, 0, 1), 0, 1); lane = LANE + (-px - LANE)*k; }
     else lane += (LANE - lane) * Math.min(1, dt*0.35);
     if (stopKind === 'deer' && rem < 42 && !bedDeerFade){ bedDeerFade = true; playBed('none', 14); }
     if (stopKind === 'motel' && rem < 42 && !bedMotel){ bedMotel = true; playBed('atmo3', 10); }           // and something colder creeps in as the motel sign shows through the rain   // the score drains away as the deer comes into the headlights
-    if (rem < 0.3){ speed = 0; mode = 'parked'; toast(stopKind === 'deer' ? 'something\u2019s in the road — tap the door handle to get out' : 'tap the door handle to get out'); }
+    if (rem < 0.3){ speed = 0; mode = 'parked'; setGear('P'); sfx('ui', 0.25); if (stopKind === 'tower') setTimeout(()=> thought('I hear crying.'), 1200); toast(stopKind === 'deer' ? 'something\u2019s in the road — tap the door handle to get out' : 'tap the door handle to get out'); }
   } else speed = 0;
   t += speed*dt;
   if (engineGain){ engineGain.gain.value = 0.03 + 0.04*(speed/SPEED); windGain.gain.value = 0.045*(speed/SPEED); }
@@ -2550,10 +2675,24 @@ function frame(now){
     f.li.intensity = f.base * k; f.tube.material.color.setRGB(0.18 + 0.44*k, 0.22 + 0.5*k, 0.2 + 0.46*k);
   }
 
+  shifter.rotation.x += (gearTarget - shifter.rotation.x) * Math.min(1, dt*8);
   { const tk = (hasTorch && mode === 'walk') ? (Math.random() < 0.02 ? 0.7 : 1) : 0; torchBeam.intensity = 4.0 * tk; torchSpill.intensity = 0.45 * tk; beamMat.opacity = 0.09 * tk * (1 + rainLevel*0.5 + (indoors ? 0.4 : 0)); beamCone.visible = beamCore.visible = tk > 0; }
+  if (cry && ac){ // her crying, from wherever she is
+    let want = 0, cut = 400;
+    if (stopKind === 'tower' && mode !== 'drive'){
+      crier.getWorldPosition(_v1); const cx = mode === 'walk' ? walker.x : 0, cz = mode === 'walk' ? walker.z : 0, ch = mode === 'walk' ? walker.h : 0;
+      const flat = Math.hypot(_v1.x - cx, _v1.z - cz), dh = Math.max(0, _v1.y - ch); const d = Math.hypot(flat, dh*1.6);   // floors count for more than distance across
+      const k = Math.max(0, 1 - d/40); want = Math.pow(k, 1.3) * 0.9;
+      const floors = Math.round(dh/3.6); cut = mode !== 'walk' ? 350 : floors >= 2 ? 500 : floors === 1 ? 1100 : 9000;   // muffled through concrete and glass; clear on her floor
+      if (inDialog) want = Math.min(want, 0.35);
+    }
+    cry.g.gain.setTargetAtTime(want, ac.currentTime, 0.4); cry.f.frequency.setTargetAtTime(cut, ac.currentTime, 0.4);
+  }
   if (stopKind === 'tower'){ const sk = Math.random() < 0.05 ? 0.3 : 1; for (const ss of stairSigns){ if (ss.isLight) ss.intensity = 0.5*sk; else ss.material.color.setScalar(0.6 + 0.4*sk); }
     const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1) toast('second floor'); else if (fl === 2) toast('third floor');  } }
   if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
+  if (stopKind === 'clinic'){ const hb = Math.pow(Math.max(0, Math.sin(now*0.0075)), 8); patientG.userData.heart.scale.set(1 + hb*0.25, 0.8 + hb*0.2, 1.1 + hb*0.25);   // it's still going
+    const fk = Math.random() < 0.04 ? 0.4 : 1; for (const l of clinicLights) l.intensity = 0.55*fk; surgLight.intensity = 2.4 * (Math.random() < 0.03 ? 0.5 : 1); }
   if (stopKind === 'tower' && crierShake){
     const sob = Math.max(0, Math.sin(now*0.0045)) ; const j = Math.sin(now*0.03)*0.012*sob + Math.sin(now*0.071)*0.006;   // breath that catches, then shudders
     crierShake.scale.set(1 + j, 1, 1 + j*0.5); headC5.rotation.x = 0.95 + j*2.5; headC5.rotation.z = Math.sin(now*0.0021)*0.08;
@@ -2655,7 +2794,7 @@ function frame(now){
   const sf = speed/SPEED;
   const bob = (Math.sin(t*0.9)*0.004 + Math.sin(t*2.7)*0.0015)*sf;
   if (mode === 'walk'){ if (inDialog){ // turn to face him while talking
-      (stopKind === 'peanut' ? woman : stopKind === 'motel' ? (door103Open ? guest : clerk) : stopKind === 'tower' ? crier : attendant).getWorldPosition(_v1); const dx = _v1.x - walker.x, dz = _v1.z - walker.z; const wantYaw = Math.atan2(-dx, -dz); let dy = wantYaw - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy*Math.min(1, dt*3); pitch += (-0.02 - pitch)*Math.min(1, dt*3); camera.rotation.set(pitch, yaw, 0);
+      (stopKind === 'peanut' ? woman : stopKind === 'motel' ? (door103Open ? guest : clerk) : stopKind === 'tower' ? crier : stopKind === 'clinic' ? patientG : attendant).getWorldPosition(_v1); const dx = _v1.x - walker.x, dz = _v1.z - walker.z; const wantYaw = Math.atan2(-dx, -dz); let dy = wantYaw - yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); yaw += dy*Math.min(1, dt*3); const headY = _v1.y + (stopKind === 'tower' ? 0.45 : stopKind === 'clinic' ? 0.2 : 1.55), wantPitch = Math.atan2(headY - (walker.h + 1.6), Math.hypot(dx, dz)); pitch += (wantPitch - pitch)*Math.min(1, dt*3); camera.rotation.set(pitch, yaw, 0);
     } else walkStep(dt); }
   else {
     cab.rotation.z = (Math.sin(t*0.6)*0.004 - steer*0.06)*sf; cab.rotation.x = bob;
@@ -2671,17 +2810,18 @@ function frame(now){
 // ── testing: ?skip=station | deer | motel | tower | road  — start a little way before that stop with everything earlier already done
 {
   const sk = new URLSearchParams(location.search).get('skip');
-  const order = ['peanut', 'station', 'deer', 'motel', 'tower', 'road'];
+  const order = ['peanut', 'station', 'deer', 'motel', 'tower', 'clinic', 'road'];
   const idx = order.indexOf(sk);
   if (idx > 0){
     const done = order.slice(0, idx);
-    const D = {station: STOP_D, deer: DEER_D - 6, motel: MOTEL_D, tower: TOWER_D, road: TOWER_D + 200}[sk];
+    const D = {station: STOP_D, deer: DEER_D - 6, motel: MOTEL_D, tower: TOWER_D, clinic: CLINIC_D, road: CLINIC_D + 200}[sk];
     stopKind = sk; stopAt = sk === 'road' ? null : D; t = D - 90;   // position first, so the leg changes hide the right things
     if (done.includes('peanut')){ talkedWoman = true; startLegOne(); dusk = 0; }
     if (done.includes('station')){ talked = true; fueled = true; startLegTwo(); startBed = 'atmo2'; }
     if (done.includes('deer')){ deerSeen = true; deerCleared = true; raining = true; rainLevel = 1; startLegThree(); startBed = 'none'; bedDeerFade = true; }
     if (done.includes('motel')){ talkedClerk = true; leg = Math.max(leg, 4); startBed = 'atmo3'; bedMotel = true; }
-    if (done.includes('tower')){ metCrier = true; hasTorch = true; crimsonOn = true; crimson = 1; leg = Math.max(leg, 5); }
+    if (done.includes('tower')){ metCrier = true; torchDead = true; crimsonOn = true; crimson = 1; leg = Math.max(leg, 5); }
+    if (done.includes('clinic')){ metPatient = true; }
     if (done.includes('deer')) setTimeout(()=>{ if (deerThing) deerThing.x = 1.55 + 4; }, 30);   // the deer is already off the road
     toast('skipped to: ' + sk);
   }
