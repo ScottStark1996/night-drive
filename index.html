@@ -1819,23 +1819,23 @@ function office(x0, x1, sgn, n, open){ const xc = (x0 + x1)/2, z = sgn;
 office(17.6, 21.2, 1, '101', true); office(21.4, 25.4, 1, '102', false); office(17.6, 21.2, -1, '103', true); office(21.4, 25.4, -1, '104', true);
 // ── the elevator: the end of the hallway. Everything here rides with the cab ──
 const elvG = new THREE.Group(); spireG.add(elvG);
-function ebox(w,h,d,mat,x,y,z){ return spbox(w,h,d,mat,x,y,z,elvG); }
-for (const sgn of [-1, 1]) ebox(0.2, 2.65, 2.3, lobbyWall, 25.5, 1.875, sgn*2.05);                                           // the end wall either side of the doors
-ebox(0.2, 0.45, 1.8, lobbyWall, 25.5, 2.975, 0);                                                                              // over the doors
-ebox(0.3, 0.06, 2.0, steelM, 25.5, 2.78, 0); for (const z of [-0.95, 0.95]) ebox(0.3, 2.25, 0.1, steelM, 25.5, 1.65, z);     // the frame
-ebox(0.3, 0.04, 2.0, steelM, 25.5, 0.57, 0);                                                                                  // sill
+function elbox(w,h,d,mat,x,y,z){ return spbox(w,h,d,mat,x,y,z,elvG); }
+for (const sgn of [-1, 1]) elbox(0.2, 2.65, 2.3, lobbyWall, 25.5, 1.875, sgn*2.05);                                           // the end wall either side of the doors
+elbox(0.2, 0.45, 1.8, lobbyWall, 25.5, 2.975, 0);                                                                              // over the doors
+elbox(0.3, 0.06, 2.0, steelM, 25.5, 2.78, 0); for (const z of [-0.95, 0.95]) elbox(0.3, 2.25, 0.1, steelM, 25.5, 1.65, z);     // the frame
+elbox(0.3, 0.04, 2.0, steelM, 25.5, 0.57, 0);                                                                                  // sill
 const elvDoors = [];
-for (const sgn of [-1, 1]){ const d = ebox(0.08, 2.2, 0.9, steelM, 25.5, 1.65, sgn*0.45); d.name = 'elvin'; d.userData.home = sgn*0.45; d.userData.away = sgn*1.4; elvDoors.push(d); ebox(0.09, 2.2, 0.02, greyM, 25.5, 1.65, sgn*0.02).name = 'elvin'; }
+for (const sgn of [-1, 1]){ const d = elbox(0.08, 2.2, 0.9, steelM, 25.5, 1.65, sgn*0.45); d.name = 'elvin'; d.userData.home = sgn*0.45; d.userData.away = sgn*1.4; elvDoors.push(d); elbox(0.09, 2.2, 0.02, greyM, 25.5, 1.65, sgn*0.02).name = 'elvin'; }
 const elvThresh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.2, 1.8), new THREE.MeshBasicMaterial({transparent: true, opacity: 0, depthWrite: false})); elvThresh.position.set(25.5, 1.65, 0); elvThresh.name = 'elvin'; elvG.add(elvThresh);
-ebox(0.04, 0.26, 0.14, steelM, 25.38, 1.45, 1.25); const elvBtn = ebox(0.03, 0.05, 0.05, new THREE.MeshBasicMaterial({color:0x4a2a10}), 25.35, 1.47, 1.25); elvBtn.name = 'elvcall';   // call plate and its one button
+elbox(0.04, 0.26, 0.14, steelM, 25.38, 1.45, 1.25); const elvBtn = elbox(0.03, 0.05, 0.05, new THREE.MeshBasicMaterial({color:0x4a2a10}), 25.35, 1.47, 1.25); elvBtn.name = 'elvcall';   // call plate and its one button
 const elvInd = textTexP(48, 20, g => { g.fillStyle = '#0a0806'; g.fillRect(0,0,48,20); g.fillStyle = '#c84020'; g.font = 'bold 13px monospace'; g.textAlign = 'center'; g.fillText('1', 24, 15); });
 const elvIndMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.15), new THREE.MeshBasicMaterial({map: elvInd})); elvIndMesh.position.set(25.38, 3.0, 0); elvIndMesh.rotation.y = -Math.PI/2; elvG.add(elvIndMesh);   // floor indicator over the doors, lobby side
 // the cab: brushed steel, a rail, a panel of buttons, a light that will not stay steady, the floor display over the doors inside
-ebox(2.0, 0.08, 2.0, new THREE.MeshPhongMaterial({color:0x1e1c1c, shininess: 30}), 26.6, 0.52, 0); ebox(2.0, 0.08, 2.0, greyM, 26.6, 2.5, 0);
-ebox(0.1, 2.0, 2.0, steelM, 27.65, 1.5, 0); for (const z of [-1.0, 1.0]) ebox(2.2, 2.0, 0.1, steelM, 26.6, 1.5, z);
-ebox(0.06, 0.04, 1.6, M.chrome, 27.55, 1.1, 0); for (const z of [-0.7, 0.7]) ebox(0.06, 0.04, 0.5, M.chrome, 26.9, 1.1, z*1.22);   // handrails
-ebox(0.03, 0.9, 0.3, steelM, 25.72, 1.4, 0.75); for (let i=0;i<8;i++) ebox(0.02, 0.05, 0.05, new THREE.MeshBasicMaterial({color: i === 7 ? 0xc83020 : 0x3a3a3a}), 25.7, 1.05 + i*0.09, 0.75 + (i%2 ? 0.07 : -0.07));   // panel: eight buttons, the top one lit
-const cabLamp = ebox(0.9, 0.03, 0.4, new THREE.MeshBasicMaterial({color:0xd8d0c0}), 26.6, 2.48, 0);
+elbox(2.0, 0.08, 2.0, new THREE.MeshPhongMaterial({color:0x1e1c1c, shininess: 30}), 26.6, 0.52, 0); elbox(2.0, 0.08, 2.0, greyM, 26.6, 2.5, 0);
+elbox(0.1, 2.0, 2.0, steelM, 27.65, 1.5, 0); for (const z of [-1.0, 1.0]) elbox(2.2, 2.0, 0.1, steelM, 26.6, 1.5, z);
+elbox(0.06, 0.04, 1.6, M.chrome, 27.55, 1.1, 0); for (const z of [-0.7, 0.7]) elbox(0.06, 0.04, 0.5, M.chrome, 26.9, 1.1, z*1.22);   // handrails
+elbox(0.03, 0.9, 0.3, steelM, 25.72, 1.4, 0.75); for (let i=0;i<8;i++) elbox(0.02, 0.05, 0.05, new THREE.MeshBasicMaterial({color: i === 7 ? 0xc83020 : 0x3a3a3a}), 25.7, 1.05 + i*0.09, 0.75 + (i%2 ? 0.07 : -0.07));   // panel: eight buttons, the top one lit
+const cabLamp = elbox(0.9, 0.03, 0.4, new THREE.MeshBasicMaterial({color:0xd8d0c0}), 26.6, 2.48, 0);
 const cabLight = new THREE.PointLight(0xd8d0c0, 0.7, 5, 1.6); cabLight.position.set(26.6, 2.3, 0); vl(elvG, cabLight);
 const elvDispC = document.createElement('canvas'); elvDispC.width = 64; elvDispC.height = 24; const elvDispTex = pixelTex(elvDispC);
 function drawElvDisp(txt){ const g = elvDispC.getContext('2d'); g.fillStyle = '#0a0806'; g.fillRect(0,0,64,24); g.fillStyle = '#d84a28'; g.font = 'bold 15px monospace'; g.textAlign = 'center'; g.fillText(txt, 32, 18); elvDispTex.needsUpdate = true; }
@@ -1844,9 +1844,9 @@ const elvDisp = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.15), new THREE.Mes
 // what the doors open onto, up there: a landing, dark, red, and nothing else yet
 const TOP_Y = 220;
 const topG = new THREE.Group(); topG.position.y = TOP_Y; spireG.add(topG);
-function tbox(w,h,d,mat,x,y,z){ return spbox(w,h,d,mat,x,y,z,topG); }
-tbox(6, 0.1, 6, new THREE.MeshPhongMaterial({color:0x121014, shininess: 30}), 22.4, 0.5, 0); tbox(6, 0.06, 6, new THREE.MeshLambertMaterial({color:0x0a0809}), 22.4, 3.25, 0);
-tbox(0.2, 3.0, 6, lobbyWall, 19.4, 1.95, 0); for (const z of [-3, 3]) tbox(6, 3.0, 0.2, lobbyWall, 22.4, 1.95, z);
+function tlbox(w,h,d,mat,x,y,z){ return spbox(w,h,d,mat,x,y,z,topG); }
+tlbox(6, 0.1, 6, new THREE.MeshPhongMaterial({color:0x121014, shininess: 30}), 22.4, 0.5, 0); tlbox(6, 0.06, 6, new THREE.MeshLambertMaterial({color:0x0a0809}), 22.4, 3.25, 0);
+tlbox(0.2, 3.0, 6, lobbyWall, 19.4, 1.95, 0); for (const z of [-3, 3]) tlbox(6, 3.0, 0.2, lobbyWall, 22.4, 1.95, z);
 const topLight = new THREE.PointLight(0x9a1018, 0.8, 9, 1.5); topLight.position.set(21.5, 2.8, 0); vl(topG, topLight);
 let elvOpen = false, elvSlide = 0, elvRide = null, elvHum = null, atTop = false, spireZone = 'lobby';
 function elvDing(){ if (!ac) return; const t = ac.currentTime; for (const [f, dly] of [[1046, 0], [784, 0.22]]){ const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t + dly); g.gain.linearRampToValueAtTime(0.18, t + dly + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dly + 0.9); o.connect(g); g.connect(master); o.start(t + dly); o.stop(t + dly + 1); } }
