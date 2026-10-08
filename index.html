@@ -90,10 +90,14 @@ const CLINIC_TIME = 20;    // seconds from the building to the clinic (set to ~1
 const CLINIC_D = TOWER_D + SPEED*CLINIC_TIME + 70;       // where the car stops at the clinic
 const CLINIC_X = 6.5;
 function inClinicZone(d){ return nearD(d, CLINIC_D, 26, 26); }
+const SPIRE_TIME = 20;     // seconds from the clinic to the tall building (set to ~150 for the real game)
+const SPIRE_D = CLINIC_D + SPEED*SPIRE_TIME + 70;
+const SPIRE_X = 6.5;
+function inSpireZone(d){ return nearD(d, SPIRE_D, 30, 30); }
 // distances wrap round the loop, and later stops sit past its end — so every zone test is taken modulo L
 function nearD(d, D, before, after){ let r = ((d - D) % L + L) % L; if (r > L/2) r -= L; return r > -before && r < after; }
 function inMotelZone(d){ return nearD(d, MOTEL_D, 26, 30); }
-function inStopZone(d, x){ return (x > 0 && x < 38 && nearD(d, STOP_D, 46, 24)) || (x > 0 && x < 17 && nearD(d, PEANUT_D, 40, 16)) || (x > 0 && x < 32 && inMotelZone(d)) || (x > 0 && x < 42 && inTowerZone(d)) || (x > 0 && x < 40 && inClinicZone(d)); }   // clearings for the station, the stand and the motel
+function inStopZone(d, x){ return (x > 0 && x < 38 && nearD(d, STOP_D, 46, 24)) || (x > 0 && x < 17 && nearD(d, PEANUT_D, 40, 16)) || (x > 0 && x < 32 && inMotelZone(d)) || (x > 0 && x < 42 && inTowerZone(d)) || (x > 0 && x < 40 && inClinicZone(d)) || (x > 0 && x < 46 && inSpireZone(d)); }   // clearings for the station, the stand and the motel
 function C(d){ return 45*Math.sin(d*0.0035) + 20*Math.sin(d*0.009+2); }
 function Cp(d){ return 45*0.0035*Math.cos(d*0.0035) + 20*0.009*Math.cos(d*0.009+2); }
 
@@ -179,6 +183,8 @@ const M = {
 // ───────────────────────── SKY ─────────────────────────
 // sky: two colours blended by height; they drift from last-light blue to full night after the first stop
 const NIGHT_TOP = new THREE.Color(0.015, 0.015, 0.05), NIGHT_HOR = new THREE.Color(0.027, 0.023, 0.047), NIGHT_FOG = new THREE.Color(0x07060c);
+const RED_FOG = new THREE.Color(0x1e0609), RED_HOR = new THREE.Color(0x24080c), RED_TOP = new THREE.Color(0x0e0306);   // after the clinic: the fog itself takes on a deep, faint crimson
+let fogRed = 0, fogRedOn = false;
 const DUSK_TOP = new THREE.Color(0.02, 0.05, 0.17), DUSK_HOR = new THREE.Color(0.10, 0.15, 0.30), DUSK_FOG = new THREE.Color(0x0b1120);
 const skyMat = new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite:false, fog:false,
@@ -244,8 +250,8 @@ function inPeanutZone(d){ return nearD(d, PEANUT_D, 40, 16); }
 function inStationZone(d){ return nearD(d, STOP_D, 46, 24); }
 // how far each wall steps back from the road at a given distance: eased in and out over a long run, so the step never shows as a flat end-face
 function ramp(d, inFn, w){ if (inFn(d)) return 1; let best = 0; for (let s = -w; s <= w; s += 4){ if (inFn(d + s)) best = Math.max(best, 1 - Math.abs(s)/w); } const k = best; return k*k*(3 - 2*k); }
-function nearWallX(d){ return 20 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 22*ramp(d, inStationZone, 70) + 24*ramp(d, inTowerZone, 80) + 20*ramp(d, inClinicZone, 70); }   // right-hand side only; the left wall never moves
-function farWallX(d){ return 32 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 16*ramp(d, inStationZone, 70) + 18*ramp(d, inTowerZone, 80) + 14*ramp(d, inClinicZone, 70); }
+function nearWallX(d){ return 20 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 22*ramp(d, inStationZone, 70) + 24*ramp(d, inTowerZone, 80) + 20*ramp(d, inClinicZone, 70) + 28*ramp(d, inSpireZone, 80); }   // right-hand side only; the left wall never moves
+function farWallX(d){ return 32 + 6*ramp(d, inPeanutZone, 50) + 20*ramp(d, inMotelZone, 70) + 16*ramp(d, inStationZone, 70) + 18*ramp(d, inTowerZone, 80) + 14*ramp(d, inClinicZone, 70) + 22*ramp(d, inSpireZone, 80); }
 // each slab is laid along the chord between its x at d and at d+20, so consecutive slabs form one continuous angled wall
 function wallSlab(geo, d, xFn, side){
   const x1 = side > 0 ? xFn(d) : xFn(-1e9), x2 = side > 0 ? xFn(d + 20) : xFn(-1e9), xx = side*(x1 + x2)/2, dx = side*(x2 - x1);
@@ -833,6 +839,7 @@ function shackBox(x0, x1, z0, z1){ return [12.5 + z0, 12.5 + z1, -1 - x1, -1 - x
 const STOPS = {
   station: { group: () => stopG, bounds: [3.0, 36, -20, 42], outside: [[11.1, 12.9, -3.4, 3.4], [22.8, 31.3, -7.8, 3.8], [6.6, 7.4, 8.6, 9.4]], room: null, insideBoxes: null, doorSpotIn: [24.6, 1.4], doorSpotOut: [21.9, 1.4] },
   motel:   { group: () => motelG, bounds: [3.0, 15.6, -22, 20], outside: [[15.5, 23, -17.5, 15.5], [15.05, 16.0, 6.6, 9.1], [3.6, 4.4, 16.6, 17.4], [9.8, 12.3, -20.8, -19.2], [9.6, 13.8, -4.7, -2.1], [13.9, 14.9, 14.1, 14.7]], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
+  spire:   { group: () => spireG, bounds: [2.5, 26, -11, 11], outside: [], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   clinic:  { group: () => clinicG, bounds: [2.5, 26.8, -10, 10], outside: [], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   tower:   { group: () => towerG, bounds: [2.5, 28.8, -14, 14], outside: [], room: null, insideBoxes: null, doorSpotIn: [0,0], doorSpotOut: [0,0] },
   peanut:  { group: () => peanutG, bounds: [3.0, 15.5, -14, 16], outside: [[10.4, 14.8, -3.6, 1.6], [9.0, 10.4, 0.0, 1.4], [4.1, 4.7, 29.6, 30.4], [7.1, 7.9, -6.4, -5.6]], room: shackBox(-2.3, 2.3, -1.8, 1.8), insideBoxes: [ shackBox(-1.9, 0.7, 0.6, 1.2), shackBox(-2.4, 2.4, 1.6, 2.0), shackBox(1.6, 2.4, 1.0, 1.7), shackBox(-2.4, -1.8, -1.45, -0.95) ], doorSpotIn: [11.6, -1.6], doorSpotOut: [9.4, -2.4] },
@@ -1653,6 +1660,62 @@ const clinicBoxes = [
 ];
 let metPatient = false;
 
+// ───────────────────────── THE TALL BUILDING ─────────────────────────
+// Stand-local coords. A tower that goes up into the fog and never seems to stop: every floor a row of windows, each lit the faintest crimson.
+// Footprint x 12..32, z -10..10. Double doors in the front wall at z -1.2..1.2, up three steps. Inside, for now: a dark lobby.
+const spireG = new THREE.Group(); addThing(spireG, SPIRE_D, 0, true);
+function spbox(w,h,d,mat,x,y,z,parent){ const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); m.position.set(x,y,z); (parent||spireG).add(m); return m; }
+// the facade: one tile = four windows wide, four floors tall; dark stone with the windows glowing through an emissive map
+const facadeTex = textTexP(128, 128, g => {
+  g.fillStyle = '#17141a'; g.fillRect(0,0,128,128);
+  for (let i=0;i<1500;i++){ const v = (Math.random()*24 - 12)|0; g.fillStyle = `rgba(${v>0?255:0},${v>0?255:0},${v>0?255:0},${Math.abs(v)/255})`; g.fillRect(Math.random()*128|0, Math.random()*128|0, 1, 1); }
+  for (let f=0; f<4; f++){ g.fillStyle = '#0d0b10'; g.fillRect(0, f*32 + 30, 128, 2); for (let w=0; w<4; w++){ g.fillStyle = '#060408'; g.fillRect(w*32 + 9, f*32 + 8, 14, 18); } }   // floor lines, window holes (dark in the colour map)
+});
+facadeTex.wrapS = facadeTex.wrapT = THREE.RepeatWrapping;
+const glowTex = textTexP(128, 128, g => {
+  g.fillStyle = '#000000'; g.fillRect(0,0,128,128);
+  for (let f=0; f<4; f++) for (let w=0; w<4; w++){ const k = 0.55 + Math.random()*0.45; g.fillStyle = `rgba(${(120*k)|0},${(10*k)|0},${(16*k)|0},1)`; g.fillRect(w*32 + 9, f*32 + 8, 14, 18); if (Math.random() < 0.25){ g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(w*32 + 9, f*32 + 8, 14, 18); } }   // every window lit a little, some almost not
+});
+glowTex.wrapS = glowTex.wrapT = THREE.RepeatWrapping;
+function facadeMat(w, h){ const m = facadeTex.clone(), e = glowTex.clone(); m.needsUpdate = e.needsUpdate = true; m.repeat.set(w/16, h/14.4); e.repeat.set(w/16, h/14.4); return new THREE.MeshLambertMaterial({map: m, emissive: 0xffffff, emissiveMap: e, emissiveIntensity: 0.9}); }
+const SPIRE_H = 400;   // far above where the fog lets you see
+const shellMats = [facadeMat(20, SPIRE_H), facadeMat(20, SPIRE_H), new THREE.MeshLambertMaterial({color:0x111016}), new THREE.MeshLambertMaterial({color:0x111016}), facadeMat(20, SPIRE_H), facadeMat(20, SPIRE_H)];
+const spireShell = new THREE.Mesh(new THREE.BoxGeometry(20, SPIRE_H, 20), shellMats); spireShell.position.set(22, SPIRE_H/2 + 4.2, 0); spireG.add(spireShell);   // the tower proper, sitting on the ground-floor plinth
+// ground floor: a stone plinth, three steps, the doorway, a canopy
+const stoneM = new THREE.MeshPhongMaterial({map: (()=>{ const t = concTex('#2a262c', 10); t.repeat.set(4, 1); return t; })(), shininess: 8, specular: 0x222222});
+// the plinth is hollow: front wall either side of the doorway, a header over it, side blocks, a back block — the lobby sits inside
+for (const z of [-5.8, 5.8]) spbox(0.5, 4.2, 8.4, stoneM, 12.25, 2.1, z);
+spbox(0.5, 0.7, 3.2, stoneM, 12.25, 3.85, 0);
+for (const z of [-8.75, 8.75]) spbox(20, 4.2, 2.5, stoneM, 22, 2.1, z);
+spbox(5.5, 4.2, 20, stoneM, 29.25, 2.1, 0);
+for (let i=0;i<3;i++) spbox(0.5, 0.18*(i+1), 4.4 + i*0.4, stoneM, 10.75 + i*0.5, 0.09*(i+1), 0);                                          // three steps up to the door, rising toward it
+spbox(0.6, 0.3, 3.6, stoneM, 12.0, 3.3, 0); for (const z of [-1.6, 1.6]) spbox(0.4, 2.9, 0.3, stoneM, 12.0, 1.99, z);                       // frame
+spbox(2.6, 0.2, 5, stoneM, 10.8, 3.9, 0); for (const z of [-2.2, 2.2]) spbox(0.1, 3.4, 0.1, M.chrome, 9.7, 2.2, z);                         // canopy on two posts
+const spireSign = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.5), new THREE.MeshBasicMaterial({map: textTexP(128, 20, g => { g.fillStyle = '#100508'; g.fillRect(0,0,128,20); g.fillStyle = '#8a1018'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.fillText('—', 64, 15); })})); spireSign.position.set(11.72, 3.6, 0); spireSign.rotation.y = -Math.PI/2; spireG.add(spireSign);
+// the double doors: tall, dark wood, brass pulls, hinged on the outer edges, opening inward
+const doorM = new THREE.MeshPhongMaterial({color:0x2a1a14, shininess: 20, specular: 0x332222});
+const bigDoors = [];
+for (const sx of [-1, 1]){ const h = new THREE.Group(); h.position.set(11.95, 0.54, sx*1.5); spireG.add(h);
+  const d = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.9, 1.45), doorM); d.position.set(0, 1.45, -sx*0.725); d.name = 'bigdoor'; h.add(d);
+  for (let i=0;i<3;i++){ const pan = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.7, 1.0), new THREE.MeshPhongMaterial({color:0x221410, shininess: 20})); pan.position.set(-0.05, 0.5 + i*0.95, -sx*0.725); pan.name = 'bigdoor'; h.add(pan); }
+  const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 8), new THREE.MeshPhongMaterial({color:0x8a6a2a, shininess: 80, specular: 0x886644})); pull.position.set(-0.1, 1.45, -sx*1.25); pull.name = 'bigdoor'; h.add(pull);
+  bigDoors.push(h); }
+let bigDoorsOpen = false, bigDoorAngle = 0;
+// a lobby behind them, dark for now
+const lobbyFloor = new THREE.MeshPhongMaterial({color:0x1a1618, shininess: 40, specular: 0x333333});
+spbox(14, 0.1, 14, lobbyFloor, 19.2, 0.5, 0); spbox(14, 0.1, 14, new THREE.MeshLambertMaterial({color:0x0a0809}), 19.2, 4.0, 0);
+spbox(0.2, 3.5, 14, new THREE.MeshLambertMaterial({color:0x14101a}), 26.2, 2.3, 0); for (const z of [-7, 7]) spbox(14, 3.5, 0.2, new THREE.MeshLambertMaterial({color:0x14101a}), 19.2, 2.3, z);
+const lobbyLight = new THREE.PointLight(0x5a0a10, 0.5, 10, 1.6); lobbyLight.position.set(19, 3.4, 0); lobbyLight.layers.enable(1); spireG.add(lobbyLight);
+// the lot, and the windows' glow on it
+const spireLot = new THREE.Mesh(new THREE.PlaneGeometry(10, 30, 10, 30), asphalt); spireLot.rotation.x = -Math.PI/2; spireLot.position.set(6.5, 0.01, 0); spireG.add(spireLot);
+for (const z of [-6, 0, 6]){ const l = new THREE.PointLight(0x7a0a12, 0.5, 14, 1.6); l.position.set(10.5, 6, z); l.layers.enable(1); spireG.add(l); }
+const canopyLight = new THREE.PointLight(0x8a1018, 0.7, 7, 1.6); canopyLight.position.set(10.6, 3.6, 0); canopyLight.layers.enable(1); spireG.add(canopyLight);
+spireG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
+// walking: the lot, the steps, and the lobby once the doors are open (the plinth is 0.54 up: the steps carry you there)
+const spireBoxes = [[11.5, 12.5, -10.5, -1.6], [11.5, 12.5, 1.6, 10.5], [26, 26.5, -7.2, 7.2], [12, 26.5, -7.3, -6.9], [12, 26.5, 6.9, 7.3]];
+function spireFloorY(x){ if (x < 10.5) return 0; return Math.min(0.54, 0.18 * (Math.floor((x - 10.5)/0.5) + 1)); }
+let spireSeen = false;
+
 // ───────────────────────── THE DEER ─────────────────────────
 // fur: mottled tan-brown with a darker dorsal band; lathe-built body parts so the silhouette is continuous, not stacked blobs
 function furTex(base, dark, light){
@@ -1779,7 +1842,8 @@ function rainStep(dt){
   rainLevel += ((raining ? 1 : 0) - rainLevel) * Math.min(1, dt*0.08);
   rainMat.opacity = rainLevel*0.55; rain.visible = rainLevel > 0.01;
   indoors = false; if (mode === 'walk' && stopKind === 'tower'){ const q = towerG.worldToLocal(new THREE.Vector3(walker.x, 0, walker.z)); indoors = q.x > 11 && q.x < 29 && Math.abs(q.z) < 12; }
-  if (mode === 'walk' && stopKind === 'clinic'){ const q = clinicG.worldToLocal(new THREE.Vector3(walker.x, 0, walker.z)); indoors = q.x > 11 && q.x < 27 && Math.abs(q.z) < 9; }   // under the slabs: no rain on you
+  if (mode === 'walk' && stopKind === 'clinic'){ const q = clinicG.worldToLocal(new THREE.Vector3(walker.x, 0, walker.z)); indoors = q.x > 11 && q.x < 27 && Math.abs(q.z) < 9; }
+  if (mode === 'walk' && stopKind === 'spire'){ const q = spireG.worldToLocal(new THREE.Vector3(walker.x, 0, walker.z)); indoors = (q.x > 12 && Math.abs(q.z) < 10) || (q.x > 9.5 && Math.abs(q.z) < 2.5); }   // under the slabs: no rain on you
   if (indoors) rain.visible = false; if (!rain.visible) return;
   rainGeo.setDrawRange(0, Math.floor(rainLevel*RAIN_N)*2);
   const drift = speed*dt;                                   // the world slides past the car, so the rain does too
@@ -2289,7 +2353,7 @@ function tap(e){
   ndc.set((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
   ray.setFromCamera(ndc, camera);
   if (mode === 'walk'){
-    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...(inside && stopKind === 'peanut' ? shack.children.filter(o => o.name === 'peanuts' || o.name === 'statin') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : []), ...(stopKind === 'clinic' ? [patientG, bell, shelfG, ...clinicG.children.filter(o => o.name === 'corpse')] : [])], true).find(i => shown(i.object));
+    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...(inside && stopKind === 'peanut' ? shack.children.filter(o => o.name === 'peanuts' || o.name === 'statin') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : []), ...(stopKind === 'clinic' ? [patientG, bell, shelfG, ...clinicG.children.filter(o => o.name === 'corpse')] : []), ...(stopKind === 'spire' ? bigDoors : [])], true).find(i => shown(i.object));
     if (h && h.distance < 3.4){
       const nm = h.object.name;
       if (nm === 'doorOut'){ if (holdingNozzle){ thought('Not with this in my hand.'); } else enterCar(); }
@@ -2320,6 +2384,7 @@ function tap(e){
       else if (nm === 'bell'){ sfx('ui', 0.25); thought('Nobody\u2019s coming.'); }
       else if (nm === 'corpse'){ sfx('ui', 0.2); thought('They\u2019re gone.'); }
       else if (nm === 'busp'){ inspect('Buspirone, for my anxiety.'); }
+      else if (nm === 'bigdoor'){ if (!bigDoorsOpen){ bigDoorsOpen = true; sfx('squeak', 0.7); setTimeout(()=> sfx('door2', 0.5), 1400); } }
       else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the red sign'), 3200); }
       else if (nm === 'arr'){ inspect('These are… my emergency antiarrhythmics. For my heart.'); }
       else if (nm === 'vend' || (nm.startsWith('vbtn') && nm !== 'vbtn4')){ sfx('ui', 0.25); thought('Can\u2019t. They all have caffeine.'); }
@@ -2369,12 +2434,14 @@ function tap(e){
     else if (stopKind === 'motel' && !talkedClerk) thought('I should see about a room.');
     else if (stopKind === 'tower' && !metCrier) thought('There\u2019s a light on up there.');
     else if (stopKind === 'clinic' && !metPatient) thought('Someone\u2019s in there.');
+    else if (stopKind === 'spire' && !bigDoorsOpen) thought('I should go in.');
     else {
       if (stopKind === 'peanut'){ startLegOne(); stopKind = 'station'; stopAt = STOP_D; }
       else if (stopKind === 'station'){ startLegTwo(); carNozzle.visible = false; liveHose.visible = false; if (liveHose.userData.hn) showNozzle(liveHose.userData.hn, true); liveHose.userData.hn = null; fuelOpen = false; stopKind = 'deer'; stopAt = DEER_D - 6; }
       else if (stopKind === 'deer'){ startLegThree(); stopKind = 'motel'; stopAt = MOTEL_D; }
       else if (stopKind === 'motel'){ leg = Math.max(leg, 4); stopKind = 'tower'; stopAt = TOWER_D; }   // leg four: past the motel the fog closes in for good
       else if (stopKind === 'tower'){ leg = Math.max(leg, 5); stopKind = 'clinic'; stopAt = CLINIC_D; }   // leg five: past the building, the fog closes in further
+      else if (stopKind === 'clinic'){ stopKind = 'spire'; stopAt = SPIRE_D; }
       else { stopKind = 'road'; stopAt = null; }
       mode = 'drive'; departed = true; setGear('D'); sfx('ui', 0.25); toast('back on the road');
     }
@@ -2410,12 +2477,14 @@ function exitCar(){
     if (stopKind === 'motel') toast('the office is to your right, under the sign');
     if (stopKind === 'tower'){ toast('the building is to your right — the way in is under the sign'); playBed('hum', 3); }
     if (stopKind === 'clinic') toast('the clinic is to your right');
+    if (stopKind === 'spire') toast('the doors are at the top of the steps');
     toast('drag to look · joystick / WASD to walk · tap the door handle to get back in');
   });
 }
 function enterCar(){
   sfx('ui', 0.25);
-  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower'){ playBed('atmo3', 4); if (metCrier){ crimsonOn = true; crimson = 1; torchDead = true; hasTorch = false; } } mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
+  fadeTo(()=>{ sfx('door2', 0.6); handTorch.visible = false; if (stopKind === 'tower'){ playBed('atmo3', 4); if (metCrier){ crimsonOn = true; crimson = 1; torchDead = true; hasTorch = false; } }
+    if (stopKind === 'clinic' && metPatient) fogRedOn = true; mode = 'parked'; ext.visible = false; cab.visible = true; yaw = 0; pitch = -0.1; toast('tap the door handle to get out'); });
 }
 function walkStep(dt){
   // input: joystick or keys, relative to where you're looking
@@ -2458,7 +2527,7 @@ function walkStep(dt){
     camera.position.set(walker.x, walker.h + 1.6 + Math.sin(walker.bobT)*0.025*Math.min(1, m), walker.z); camera.rotation.set(pitch, yaw, 0);
     return;
   }
-  const boxes = inside ? (inBath ? bathBoxes : (S.insideBoxes || insideBoxes)) : [ [c.x-1.05, c.x+1.05, c.z-2.5, c.z+2.5], ...S.outside, ...(stopKind === 'clinic' ? clinicBoxes : []) ];
+  const boxes = inside ? (inBath ? bathBoxes : (S.insideBoxes || insideBoxes)) : [ [c.x-1.05, c.x+1.05, c.z-2.5, c.z+2.5], ...S.outside, ...(stopKind === 'clinic' ? clinicBoxes : []), ...(stopKind === 'spire' ? [...spireBoxes, ...(bigDoorsOpen ? [] : [[11.5, 12.5, -1.7, 1.7]])] : []) ];
   const rb = inside ? (inBath ? bathRoom : (S.room || roomBounds)) : null;
   if (rb){ p.x = Math.max(rb[0], Math.min(rb[1], p.x)); p.z = Math.max(rb[2], Math.min(rb[3], p.z)); }
   for (const [x0,x1,z0,z1] of boxes){
@@ -2468,10 +2537,11 @@ function walkStep(dt){
     }
   }
   if (!inside){ p.x = Math.max(S.bounds[0], Math.min(S.bounds[1], p.x)); p.z = Math.max(S.bounds[2], Math.min(S.bounds[3], p.z)); }
+  if (stopKind === 'spire') walker.h = spireFloorY(p.x);
   const w = G.localToWorld(p); walker.x = w.x; walker.z = w.z;
   // head bob while moving
   walker.bobT = (walker.bobT || 0) + (m > 0.05 ? dt*7 : 0);
-  camera.position.set(walker.x, 1.6 + Math.sin(walker.bobT)*0.025*Math.min(1, m) - Math.max(0, pushT)*0.5, walker.z);
+  camera.position.set(walker.x, walker.h + 1.6 + Math.sin(walker.bobT)*0.025*Math.min(1, m) - Math.max(0, pushT)*0.5, walker.z);
   camera.rotation.set(pitch, yaw, (Math.random()-0.5)*0.1*Math.max(0, pushT));
 }
 
@@ -2701,7 +2771,7 @@ function frame(now){
     const rem = stopAt - t;
     const target = Math.max(0, Math.min(SPEED, Math.sqrt(Math.max(0, 2*1.6*rem))));
     speed = Math.min(target, speed + 2.2*dt);                             // never faster than the stopping curve, and accelerate gently
-    if (stopKind === 'station' || stopKind === 'peanut' || stopKind === 'motel' || stopKind === 'tower' || stopKind === 'clinic'){ const px = stopKind === 'station' ? PUMP_X : stopKind === 'motel' ? MOTEL_X : stopKind === 'tower' ? TOWER_X : stopKind === 'clinic' ? CLINIC_X : PEANUT_X; const k = THREE.MathUtils.smoothstep(THREE.MathUtils.clamp((34 - rem)/26, 0, 1), 0, 1); lane = LANE + (-px - LANE)*k; }
+    if (stopKind === 'station' || stopKind === 'peanut' || stopKind === 'motel' || stopKind === 'tower' || stopKind === 'clinic' || stopKind === 'spire'){ const px = stopKind === 'station' ? PUMP_X : stopKind === 'motel' ? MOTEL_X : stopKind === 'tower' ? TOWER_X : stopKind === 'clinic' ? CLINIC_X : stopKind === 'spire' ? SPIRE_X : PEANUT_X; const k = THREE.MathUtils.smoothstep(THREE.MathUtils.clamp((34 - rem)/26, 0, 1), 0, 1); lane = LANE + (-px - LANE)*k; }
     else lane += (LANE - lane) * Math.min(1, dt*0.35);
     if (stopKind === 'deer' && rem < 42 && !bedDeerFade){ bedDeerFade = true; playBed('none', 14); }
     if (stopKind === 'motel' && rem < 42 && !bedMotel){ bedMotel = true; playBed('atmo3', 10); }           // and something colder creeps in as the motel sign shows through the rain   // the score drains away as the deer comes into the headlights
@@ -2734,7 +2804,9 @@ function frame(now){
   // dusk → night: after the first stop the blue drains out of the sky over about a minute
   dusk += ((leg >= 1 ? 0 : 1) - dusk) * Math.min(1, dt*0.025);
   skyMat.uniforms.top.value.copy(NIGHT_TOP).lerp(DUSK_TOP, dusk); skyMat.uniforms.hor.value.copy(NIGHT_HOR).lerp(DUSK_HOR, dusk);
-  scene.fog.color.copy(NIGHT_FOG).lerp(DUSK_FOG, dusk); scene.background.copy(scene.fog.color);
+  fogRed += ((fogRedOn ? 1 : 0) - fogRed) * Math.min(1, dt*0.08);
+  scene.fog.color.copy(NIGHT_FOG).lerp(DUSK_FOG, dusk).lerp(RED_FOG, fogRed*0.6); scene.background.copy(scene.fog.color);
+  if (fogRed > 0.001){ skyMat.uniforms.hor.value.lerp(RED_HOR, fogRed*0.5); skyMat.uniforms.top.value.lerp(RED_TOP, fogRed*0.4); }
   hemi.intensity = 0.3 + dusk*0.25; hemi.color.setRGB(0.1 + dusk*0.08, 0.09 + dusk*0.12, 0.19 + dusk*0.25);
   stars.material.opacity = 0.25 + (1 - dusk)*0.75;
 
@@ -2791,6 +2863,7 @@ function frame(now){
   if (stopKind === 'tower'){ const sk = Math.random() < 0.05 ? 0.3 : 1; for (const ss of stairSigns){ if (ss.isLight) ss.intensity = 0.5*sk; else ss.material.color.setScalar(0.6 + 0.4*sk); }
     const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1){ toast('second floor'); if (runnerT < 0 && !runner.userData.done){ runner.userData.done = true; setTimeout(startRunner, 700); } } else if (fl === 2) toast('third floor');  } }
   if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
+  if (stopKind === 'spire'){ bigDoorAngle += ((bigDoorsOpen ? 1.5 : 0) - bigDoorAngle) * Math.min(1, dt*1.6); bigDoors[0].rotation.y = bigDoorAngle; bigDoors[1].rotation.y = -bigDoorAngle; }   // inward
   if (stopKind === 'clinic'){ const ph2 = patientHead.userData; const open = inDialog && Math.floor(now/1400) % 2 === 1; const want = ph2.faces[open ? 1 : 0]; if (ph2.mesh.material[2] !== want){ ph2.mesh.material[2] = want; ph2.mesh.material.needsUpdate = true; }   // eyes open and close in turn while he talks
     const H = patientG.userData.heart, hd = H.userData;   // atrial fibrillation: the ventricles beat irregularly irregular, fast and uneven; the atria don't beat at all, they quiver
     hd.nextBeat -= dt; hd.beatAge += dt;
@@ -2917,18 +2990,19 @@ function frame(now){
 // ── testing: ?skip=station | deer | motel | tower | road  — start a little way before that stop with everything earlier already done
 {
   const sk = new URLSearchParams(location.search).get('skip');
-  const order = ['peanut', 'station', 'deer', 'motel', 'tower', 'clinic', 'road'];
+  const order = ['peanut', 'station', 'deer', 'motel', 'tower', 'clinic', 'spire', 'road'];
   const idx = order.indexOf(sk);
   if (idx > 0){
     const done = order.slice(0, idx);
-    const D = {station: STOP_D, deer: DEER_D - 6, motel: MOTEL_D, tower: TOWER_D, clinic: CLINIC_D, road: CLINIC_D + 200}[sk];
+    const D = {station: STOP_D, deer: DEER_D - 6, motel: MOTEL_D, tower: TOWER_D, clinic: CLINIC_D, spire: SPIRE_D, road: SPIRE_D + 200}[sk];
     stopKind = sk; stopAt = sk === 'road' ? null : D; t = D - 90;   // position first, so the leg changes hide the right things
     if (done.includes('peanut')){ talkedWoman = true; startLegOne(); dusk = 0; }
     if (done.includes('station')){ talked = true; fueled = true; startLegTwo(); startBed = 'atmo2'; }
     if (done.includes('deer')){ deerSeen = true; deerCleared = true; raining = true; rainLevel = 1; startLegThree(); startBed = 'none'; bedDeerFade = true; }
     if (done.includes('motel')){ talkedClerk = true; leg = Math.max(leg, 4); startBed = 'atmo3'; bedMotel = true; }
     if (done.includes('tower')){ metCrier = true; torchDead = true; crimsonOn = true; crimson = 1; leg = Math.max(leg, 5); }
-    if (done.includes('clinic')){ metPatient = true; }
+    if (done.includes('clinic')){ metPatient = true; fogRedOn = true; fogRed = 1; }
+    if (done.includes('spire')){ bigDoorsOpen = true; }
     if (done.includes('deer')) setTimeout(()=>{ if (deerThing) deerThing.x = 1.55 + 4; }, 30);   // the deer is already off the road
     toast('skipped to: ' + sk);
   }
