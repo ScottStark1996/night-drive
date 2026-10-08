@@ -623,7 +623,7 @@ const peanutGeo = merge([ new THREE.SphereGeometry(0.018, 7, 5).scale(1, 1, 1.25
 function peanutPile(n, w, d, h, mat, parent, x, y, z){ // a heap of individual peanuts in one draw call
   const im = new THREE.InstancedMesh(peanutGeo, mat, n); const dm = new THREE.Object3D();
   for (let i=0;i<n;i++){ const r = Math.random(), a = Math.random()*6.28; const rx = Math.sqrt(r)*w*0.5, rz = Math.sqrt(r)*d*0.5; dm.position.set(Math.cos(a)*rx, Math.random()*h*(1 - r*0.7), Math.sin(a)*rz); dm.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3); dm.updateMatrix(); im.setMatrixAt(i, dm.matrix); }
-  im.position.set(x, y, z); parent.add(im); return im;
+  im.position.set(x, y, z); im.name = 'peanuts'; parent.add(im); return im;
 }
 // a bag texture for the clear plastic sacks of raw peanuts — shells showing through
 const rawBagTex = textTexP(32, 48, g => { g.fillStyle = '#b8945e'; g.fillRect(0,0,32,48); for (let i=0;i<70;i++){ g.fillStyle = ['#a07a46','#d2ad74','#8e6a3c'][i%3]; g.beginPath(); g.ellipse(Math.random()*32, 6 + Math.random()*40, 2.4, 1.4, Math.random()*3, 0, 7); g.fill(); } g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(0,0,32,48); g.fillStyle = '#e8e4d8'; g.fillRect(6, 16, 20, 9); g.fillStyle = '#7a1e18'; g.font = 'bold 5px sans-serif'; g.textAlign = 'center'; g.fillText('RAW', 16, 22); g.fillStyle = '#ddd'; g.fillRect(0,0,32,5); });
@@ -634,7 +634,7 @@ function paperBag(parent, x, y, z, rot, full){ // a brown paper sack, top folded
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.13, full ? 0.2 : 0.12, 0.08), paperM); body.position.y = (full ? 0.1 : 0.06); body.rotation.z = (Math.random()-0.5)*0.1; g.add(body);
   const fold = new THREE.Mesh(new THREE.BoxGeometry(0.135, 0.03, 0.09), paperDark); fold.position.y = (full ? 0.21 : 0.13); fold.rotation.z = (Math.random()-0.5)*0.2; g.add(fold);
   if (full){ const bulge = new THREE.Mesh(new THREE.SphereGeometry(0.07, 7, 5), paperM); bulge.scale.set(1, 1.1, 0.6); bulge.position.y = 0.09; g.add(bulge); }
-  return g;
+  g.traverse(o => o.name = 'peanuts'); return g;
 }
 function rawBag(parent, x, y, z, rot){ const b = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), rawBagM); b.scale.set(0.8, 1.3, 0.45); b.position.set(x, y + 0.12, z); b.rotation.y = rot; b.rotation.z = (Math.random()-0.5)*0.25; parent.add(b); const tie = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.03), paperDark); tie.position.set(x, y + 0.26, z); parent.add(tie); return b; }
 // back shelves: raw sacks and paper bags, a couple of jars
@@ -652,6 +652,14 @@ peanutPile(90, 0.26, 0.26, 0.08, boiledM, shack, -0.8, 1.06, 0.85);
 // a rack of little bags for sale by the window, and an open burlap sack spilling peanuts by the pot
 pbox(0.04, 0.9, 0.04, M.pole, -1.95, 1.0, -1.75, shack); for (let i=0;i<4;i++){ pbox(0.3, 0.02, 0.02, M.pole, -1.8, 0.6 + i*0.25, -1.75, shack); for (let k=0;k<2;k++) paperBag(shack, -1.9 + k*0.17, 0.61 + i*0.25, -1.72, 0, true); }
 { const sackOpen = new THREE.Mesh(new THREE.SphereGeometry(0.3, 7, 5), sack); sackOpen.scale.set(1.1, 0.5, 0.9); sackOpen.position.set(-2.3, 0.15, -2.95); shack.add(sackOpen); peanutPile(120, 0.34, 0.3, 0.1, shellM, shack, -2.3, 0.27, -2.95); peanutPile(30, 0.5, 0.4, 0.02, shellM, shack, -2.0, 0.13, -2.75); }
+// a little trash can by the counter, a pill bottle on top of the rubbish in it
+{ const can = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.14, 0.4, 10, 1, true), new THREE.MeshLambertMaterial({color:0x3a3a3c, side:THREE.DoubleSide})); can.position.set(-2.1, 0.2, 0.3); shack.add(can);
+  const canBottom = new THREE.Mesh(new THREE.CircleGeometry(0.14, 10), new THREE.MeshLambertMaterial({color:0x2a2a2c})); canBottom.rotation.x = -Math.PI/2; canBottom.position.set(-2.1, 0.01, 0.3); shack.add(canBottom);
+  const rub = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.13, 7, 5), 0.05), new THREE.MeshLambertMaterial({color:0x8a7a62})); rub.scale.y = 0.5; rub.position.set(-2.1, 0.3, 0.3); shack.add(rub);   // crumpled paper and shells
+  const statTex = textTex(32, 32, g => { g.fillStyle = '#e4dcc8'; g.fillRect(0,0,32,32); g.fillStyle = '#3a6a3a'; g.fillRect(0, 9, 32, 12); g.fillStyle = '#f0ece0'; g.fillRect(3, 13, 24, 1); g.fillRect(3, 16, 18, 1); g.fillRect(3, 19, 22, 1); });
+  const st = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.09, 10), new THREE.MeshLambertMaterial({map: statTex})); st.position.set(-2.08, 0.4, 0.33); st.rotation.set(0.5, 0.4, 0.9); st.name = 'statin'; shack.add(st);
+  const stCap = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.02, 10), new THREE.MeshLambertMaterial({color:0xf0ece0})); stCap.position.set(-2.08 + 0.04, 0.4 + 0.025, 0.33 - 0.03); stCap.rotation.set(0.5, 0.4, 0.9); stCap.name = 'statin'; shack.add(stCap);
+}
 // a wooden barrel of peanuts in the back-right corner, with a crate stack by the window
 const staveTex = textTexP(64, 32, g => { g.fillStyle = '#6a553c'; g.fillRect(0,0,64,32); for (let x=0;x<64;x+=8){ g.fillStyle = ['#6a553c','#5e4a34','#745e44'][(x/8)%3]; g.fillRect(x, 0, 7, 32); g.fillStyle = '#3a2d20'; g.fillRect(x+7, 0, 1, 32); } });
 staveTex.wrapS = THREE.RepeatWrapping; staveTex.repeat.set(3, 1);
@@ -1180,8 +1188,8 @@ const vendBtnLbl = (t, out) => textTexP(32, 12, g => { g.fillStyle = out ? '#2a1
 const vendBtns = [['COLA', false], ['DIET', false], ['ROOT BEER', true], ['ORANGE', false], ['TEA', false], ['WATER', true]];
 vendBtns.forEach(([t, out], i) => {
   const y = 1.62 - i*0.15;
-  mbox(0.2, 0.09, 0.02, new THREE.MeshLambertMaterial({color: 0x1a1a1a}), 0.27, y, 0.405, vendG);
-  const l = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.07), new THREE.MeshBasicMaterial({map: vendBtnLbl(t, out)})); l.position.set(0.27, y, 0.42); vendG.add(l);
+  mbox(0.2, 0.09, 0.02, new THREE.MeshLambertMaterial({color: 0x1a1a1a}), 0.27, y, 0.405, vendG).name = 'vbtn' + i;
+  const l = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.07), new THREE.MeshBasicMaterial({map: vendBtnLbl(t, out)})); l.position.set(0.27, y, 0.42); l.name = 'vbtn' + i; vendG.add(l);
 });
 mbox(0.26, 1.0, 0.03, new THREE.MeshLambertMaterial({color:0x2a1818}), 0.27, 1.25, 0.39, vendG);                      // the strip the buttons sit on
 // coin mech: chrome plate, slot, return button, INSERT COIN
@@ -1202,7 +1210,12 @@ const stkr = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.1), new THREE.MeshLa
 const cord = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0.2, 0.2, -0.4), new THREE.Vector3(0.3, 0.1, -0.5), new THREE.Vector3(0.45, 0.04, -0.52), new THREE.Vector3(0.6, 0.06, -0.5)]), 8, 0.012, 5, false), blackM); vendG.add(cord);
 // a crushed can on the ground beside it
 const vcan = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.1, 7), new THREE.MeshLambertMaterial({color:0xb02828})); vcan.position.set(0.72, 0.03, 0.5); vcan.rotation.z = Math.PI/2 + 0.3; vcan.scale.y = 0.7; vendG.add(vcan);
-vendG.traverse(o => { if (o.isMesh) o.name = 'vend'; });
+// what the TEA button actually drops: a pill bottle, into the tray
+const zofTex = textTex(32, 32, g => { g.fillStyle = '#e8e2d2'; g.fillRect(0,0,32,32); g.fillStyle = '#7a4a8a'; g.fillRect(0, 9, 32, 12); g.fillStyle = '#f0ece0'; g.fillRect(3, 13, 24, 1); g.fillRect(3, 16, 18, 1); g.fillRect(3, 19, 22, 1); });
+const zofran = new THREE.Group(); zofran.position.set(-0.1, 0.24, 0.33); zofran.rotation.set(0, 0.5, Math.PI/2 - 0.2); zofran.visible = false; vendG.add(zofran);
+{ const b = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.09, 10), new THREE.MeshLambertMaterial({map: zofTex})); b.name = 'zofran'; zofran.add(b); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.02, 10), new THREE.MeshLambertMaterial({color:0xf0ece0})); c.position.y = 0.055; c.name = 'zofran'; zofran.add(c); }
+let vendDropped = false;
+vendG.traverse(o => { if (o.isMesh && !o.name) o.name = 'vend'; });
 const vendLight = new THREE.PointLight(0xff7a6a, 0.55, 4.5, 2); vendLight.position.set(14.9, 1.0, 7.1); vendLight.layers.enable(1); motelG.add(vendLight);
 let vendHum = 0;
 mbox(0.5, 0.7, 0.3, pumpDark, 14.4, 1.4, 14.4); mbox(0.08, 0.5, 0.08, pumpDark, 14.4, 0.6, 14.4);                       // pay phone on a post
@@ -1547,6 +1560,32 @@ function examRoom(zc, body){
     cbox(0.08, 0.01, 0.12, new THREE.MeshLambertMaterial({color:0xe8e0c8}), 23 + 0.14, 0.94, zc - 1.0); }     // a toe tag
 }
 examRoom(-6, true); examRoom(0, true);
+// room 2: a wall shelf of instruments along the partition, and a pill bottle among them
+const shelfG = new THREE.Group(); shelfG.position.set(21.5, 1.35, 2.82); clinicG.add(shelfG);
+{
+  const sh = (m, x, y, z) => { m.position.set(x, y, z); shelfG.add(m); return m; };
+  const wood = new THREE.MeshLambertMaterial({color:0x8a8478}), glass = new THREE.MeshLambertMaterial({color:0xaab8b8, transparent:true, opacity:0.45}), rubberG = new THREE.MeshLambertMaterial({color:0x202020}), gauzeM = new THREE.MeshLambertMaterial({color:0xd8d4c8});
+  sh(new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.04, 0.32), wood), 0, 0, 0); for (const x of [-1.0, 1.0]) sh(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.2, 0.28), steel), x, -0.12, 0);   // the board on two brackets
+  sh(new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.04, 0.32), wood), 0, 0.5, 0);                                                                                                       // and a second board above
+  // bottom shelf, left to right: a kidney dish with forceps in it, scissors, three scalpels, a jar of swabs, a syringe, gauze, the pill bottle, a reflex hammer
+  const dish = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.04, 10, 1, true), steel), -0.95, 0.04, 0); dish.scale.z = 0.6;
+  sh(new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.01, 0.16), steel), -0.98, 0.05, 0.0).rotation.y = 0.4; sh(new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.01, 0.16), steel), -0.93, 0.055, 0.02).rotation.y = 0.5;   // forceps
+  sh(new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.008, 0.14), steel), -0.62, 0.03, 0.02).rotation.y = 0.35; sh(new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.008, 0.14), steel), -0.62, 0.034, 0.02).rotation.y = -0.35; for (const dx of [-0.03, 0.03]) sh(new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.004, 5, 8), steel), -0.62 + dx, 0.03, 0.08).rotation.x = Math.PI/2;   // scissors
+  for (let i=0;i<3;i++){ sh(new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.006, 0.13), steel), -0.4 + i*0.05, 0.025, 0.0).rotation.y = (i-1)*0.1; sh(new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.004, 0.035), new THREE.MeshPhongMaterial({color:0xd0d4d8, shininess: 90, specular: 0x888888})), -0.4 + i*0.05, 0.025, -0.08); }   // scalpels
+  sh(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 10), glass), -0.12, 0.09, 0); sh(new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.11, 8), gauzeM), -0.12, 0.08, 0); sh(new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.02, 10), rubberG), -0.12, 0.17, 0);   // jar of swabs, lid on
+  const syr = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8), glass), 0.12, 0.034, 0.02); syr.rotation.z = Math.PI/2; syr.rotation.y = 0.3; sh(new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.05, 4), steel), 0.2, 0.034, 0.045).rotation.z = Math.PI/2;   // syringe
+  for (let i=0;i<2;i++) sh(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.06, 10), gauzeM), 0.36 + i*0.08, 0.055, 0.0).rotation.x = Math.PI/2;   // gauze rolls
+  const buspTex = textTex(32, 32, g => { g.fillStyle = '#e8e2d2'; g.fillRect(0,0,32,32); g.fillStyle = '#2a4a7a'; g.fillRect(0, 9, 32, 13); g.fillStyle = '#f0ece0'; g.fillRect(3, 13, 26, 1); g.fillRect(3, 16, 20, 1); g.fillRect(3, 19, 22, 1); });
+  const busp = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.1, 10), new THREE.MeshPhongMaterial({map: buspTex, shininess: 30, specular: 0x444444})), 0.62, 0.07, 0.02); busp.name = 'busp';
+  const buspCap = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.022, 10), new THREE.MeshPhongMaterial({color:0xf4f0e4, shininess: 30, specular: 0x444444})), 0.62, 0.131, 0.02); buspCap.name = 'busp';
+  sh(new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.2, 6), steel), 0.95, 0.03, 0.0).rotation.z = Math.PI/2; sh(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.05, 8), rubberG), 1.04, 0.03, 0.0).rotation.x = Math.PI/2;   // reflex hammer
+  // top shelf: boxes of gloves, a bottle of iodine, an old BP cuff, a stethoscope hanging off the end
+  for (let i=0;i<3;i++) sh(new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.12), new THREE.MeshLambertMaterial({color: [0x6a7aa8, 0x6a7aa8, 0x9a7a6a][i]})), -0.85 + i*0.27, 0.58, 0);
+  sh(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 8), new THREE.MeshLambertMaterial({color:0x5a3a10})), 0.1, 0.58, 0); sh(new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.03, 8), rubberG), 0.1, 0.655, 0);
+  sh(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06, 0.14), new THREE.MeshLambertMaterial({color:0x2a2a3a})), 0.45, 0.55, 0); sh(new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), rubberG), 0.62, 0.55, 0.04);   // cuff and its bulb
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(1.1, 0.52, 0.1), new THREE.Vector3(1.18, 0.3, 0.14), new THREE.Vector3(1.1, 0.1, 0.16), new THREE.Vector3(1.0, -0.05, 0.14), new THREE.Vector3(1.12, -0.2, 0.12)]), 12, 0.006, 5, false), rubberG); shelfG.add(tube); sh(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.012, 10), steel), 1.12, -0.21, 0.12);   // stethoscope
+  shelfG.traverse(o => { o.layers.set(1); o.layers.enable(0); });
+}
 // room 3: the operating table. A figure open on it, mid-surgery — and not quite finished with
 const opT = new THREE.Group(); opT.position.set(23, 0, 6); clinicG.add(opT);
 cbox(0.8, 0.08, 2.0, padM, 0, 0.9, 0, opT); cbox(0.5, 0.86, 0.6, steel, 0, 0.43, 0, opT); cbox(0.9, 0.04, 2.1, steel, 0, 0.86, 0, opT);
@@ -1607,6 +1646,7 @@ const clinicBoxes = [
   [10.8, 11.2, -9.2, -1.0], [10.8, 11.2, 1.0, 9.2], [10.8, 27.2, -9.2, -8.8], [10.8, 27.2, 8.8, 9.2], [26.8, 27.2, -9.2, 9.2],   // shell, with the doorway
   [18.85, 19.15, -9.2, -6.6], [18.85, 19.15, -5.4, -0.6], [18.85, 19.15, 0.6, 5.4], [18.85, 19.15, 6.6, 9.2],                   // corridor wall, three doorways
   [19, 27, -3.1, -2.9], [19, 27, 2.9, 3.1],                                                                                     // partitions
+  [20.2, 22.8, 2.62, 3.0],                                                                                                      // the shelf in room 2
   [19.0, 20.3, -5.5, -5.25], [19.0, 20.3, 0.3, 0.75], [19.0, 20.3, 6.45, 6.75],                                                   // the open doors, where they hang
   [14.9, 16.4, -2.7, 2.7], [16.2, 17.0, -3.8, -3.2], [11.6, 12.4, -8.8, -4.6], [11.6, 12.4, 3.8, 7.2], [11.9, 12.5, -8.8, -8.0],  // desk, cabinet, chairs, cooler
   [22.6, 23.4, -7.0, -5.0], [26.3, 27, -7.7, -6.1], [22.6, 23.4, -1.0, 1.0], [26.3, 27, -1.7, -0.1], [22.5, 23.5, 4.9, 7.1], [26.1, 27, 6.2, 6.8], [23.7, 24.3, 6.1, 6.5],   // tables, cabinets, tray
@@ -2249,7 +2289,7 @@ function tap(e){
   ndc.set((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
   ray.setFromCamera(ndc, camera);
   if (mode === 'walk'){
-    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : []), ...(stopKind === 'clinic' ? [patientG, bell, ...clinicG.children.filter(o => o.name === 'corpse')] : [])], true).find(i => shown(i.object));
+    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...(inside && stopKind === 'peanut' ? shack.children.filter(o => o.name === 'peanuts' || o.name === 'statin') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : []), ...(stopKind === 'clinic' ? [patientG, bell, shelfG, ...clinicG.children.filter(o => o.name === 'corpse')] : [])], true).find(i => shown(i.object));
     if (h && h.distance < 3.4){
       const nm = h.object.name;
       if (nm === 'doorOut'){ if (holdingNozzle){ thought('Not with this in my hand.'); } else enterCar(); }
@@ -2279,10 +2319,14 @@ function tap(e){
       else if (nm === 'patient'){ startDialogPatient(); }
       else if (nm === 'bell'){ sfx('ui', 0.25); thought('Nobody\u2019s coming.'); }
       else if (nm === 'corpse'){ sfx('ui', 0.2); thought('They\u2019re gone.'); }
+      else if (nm === 'busp'){ inspect('Buspirone, for my anxiety.'); }
       else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the red sign'), 3200); }
       else if (nm === 'arr'){ inspect('These are… my emergency antiarrhythmics. For my heart.'); }
-      else if (nm === 'vend'){ sfx('ui', 0.25); thought('Can\u2019t. They all have caffeine.'); }
-      else if (nm === 'snack'){ sfx('ui', 0.25); thought('I\u2019m not hungry.'); }
+      else if (nm === 'vend' || (nm.startsWith('vbtn') && nm !== 'vbtn4')){ sfx('ui', 0.25); thought('Can\u2019t. They all have caffeine.'); }
+      else if (nm === 'vbtn4'){ sfx('ui', 0.25); if (!vendDropped){ vendDropped = true; setTimeout(()=>{ click(0.8, 90); setTimeout(()=> click(0.6, 70), 120); zofran.visible = true; vendFlap.rotation.x = 0.5; setTimeout(()=> vendFlap.rotation.x = 0.12, 900); }, 700); } }   // something comes down
+      else if (nm === 'zofran'){ inspect('This is… my Zofran. For my nausea. I have to be careful taking it. It might mess with my heart.'); }
+      else if (nm === 'snack' || nm === 'peanuts'){ sfx('ui', 0.25); thought('I\u2019m not hungry.'); }
+      else if (nm === 'statin'){ inspect('It\u2019s… a statin. I take medication just like this.'); }
       else if (nm === 'ccb'){ inspect('That\u2019s… my calcium channel blocker. For my heart.'); }
       else if (nm === 'clerk'){ startDialogClerk(); }
       else if (nm === 'roomdoor'){ sfx('locked', 0.6); setTimeout(()=> thought('Locked.'), 350); }
@@ -2340,7 +2384,7 @@ function tap(e){
   if (hit.object.name === 'tune'){ if (!stereoOn) return; station = (station + 1) % STATIONS.length; tuneKnob.rotation.z += 0.6; sfx('ui', 0.18); tuneBurst = 0.35; applyStation(); toast('tuning… ' + STATIONS[station].label); }
   if (hit.object.name === 'glovebox'){ gloveOpen = !gloveOpen; lidSfx(gloveOpen); if (gloveOpen){ pills.visible = sd.visible = true; gloveTorch.visible = torchDead; } }
   if (hit.object.name === 'deadtorch'){ sfx('ui', 0.25); thought('I think the battery died.'); }
-  if (hit.object.name === 'pills'){ inspect('Ibuprofen, for my migraines.'); }
+  if (hit.object.name === 'pills'){ inspect('Ibuprofen, for my migraines. I have to be careful taking it with my blood thinners.'); }
   if (hit.object.name === 'acet'){ inspect('Acetaminophen. For my pain. It doesn\u2019t work very well.'); }
   if (hit.object.name === 'photo'){ inspect(crimsonOn ? 'A photograph, of me and my mom. It makes me sad.' : 'A photograph. I don\u2019t remember when it was taken.'); }
   if (hit.object.name === 'console'){ consoleOpen = !consoleOpen; lidSfx(consoleOpen); if (consoleOpen) consoleItems.visible = true; }
