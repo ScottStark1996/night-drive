@@ -1531,6 +1531,7 @@ for (const z of [-3, 3]) cbox(8, 3.0, 0.2, clinicWall, 23, 1.5, z);
 // room numbers beside the doors
 [['1', -6], ['2', 0], ['3', 6]].forEach(([n, z]) => { const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.22), new THREE.MeshLambertMaterial({map: textTexP(16, 16, g => { g.fillStyle = '#d8d4c8'; g.fillRect(0,0,16,16); g.fillStyle = '#2a2a2a'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText(n, 8, 12); })})); pl.position.set(18.86, 1.8, z - 0.9); pl.rotation.y = -Math.PI/2; clinicG.add(pl); });
 // the rooms: an exam table, a cabinet, an IV stand, a stool; on the first two tables, a body under a sheet
+const corpseFaces = [ [pixTex('face7.png'), pixTex('hair7.png')], [pixTex('face8.png'), pixTex('hair8.png')] ]; let corpseN = 0;
 function examRoom(zc, body){
   cbox(0.7, 0.1, 1.9, padM, 23, 0.8, zc); cbox(0.6, 0.7, 1.7, steel, 23, 0.4, zc);                      // table
   cbox(0.4, 0.25, 0.4, padM, 23, 0.95, zc + 0.75);                                                       // the raised head end
@@ -1538,7 +1539,10 @@ function examRoom(zc, body){
   cbox(0.03, 1.8, 0.03, steel, 24.2, 0.9, zc - 0.9); cbox(0.3, 0.02, 0.3, steel, 24.2, 1.8, zc - 0.9); cbox(0.12, 0.25, 0.06, new THREE.MeshLambertMaterial({color:0xc8c0a8, transparent:true, opacity:0.7}), 24.3, 1.6, zc - 0.9);   // IV stand, a bag still hanging
   cbox(0.35, 0.05, 0.35, padM, 21.5, 0.5, zc + 0.5); cbox(0.04, 0.5, 0.04, steel, 21.5, 0.25, zc + 0.5);  // stool
   if (body){ const b = new THREE.Mesh(lumpy(new THREE.SphereGeometry(0.5, 10, 8), 0.08), sheetM); b.scale.set(0.6, 0.42, 1.8); b.position.set(23, 1.0, zc - 0.05); clinicG.add(b);   // under the sheet
-    const hd = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), sheetM); hd.scale.set(0.9, 0.7, 1.0); hd.position.set(23, 1.12, zc + 0.78); clinicG.add(hd);
+    const [ftx, htx] = corpseFaces[corpseN++]; const faceM = new THREE.MeshLambertMaterial({map: ftx}), hairM = new THREE.MeshLambertMaterial({map: htx}), skinG = new THREE.MeshLambertMaterial({color:0x9a8e84});
+    const hd = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.24), [skinG, skinG, faceM, hairM, hairM, hairM]); hd.position.set(23, 1.1, zc + 0.78); hd.rotation.y = Math.PI; hd.name = 'corpse'; clinicG.add(hd);   // turned so the crown points away from the body   // face up, on the raised end, the sheet pulled to the chin
+    const nk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.1, 8), skinG); nk.rotation.x = Math.PI/2; nk.position.set(23, 1.04, zc + 0.62); nk.name = 'corpse'; clinicG.add(nk);
+    b.name = 'corpse';
     for (const sx of [-1, 1]) cbox(0.09, 0.06, 0.22, new THREE.MeshLambertMaterial({color:0x8a7a6a}), 23 + sx*0.14, 0.9, zc - 0.95);   // feet out the end
     cbox(0.08, 0.01, 0.12, new THREE.MeshLambertMaterial({color:0xe8e0c8}), 23 + 0.14, 0.94, zc - 1.0); }     // a toe tag
 }
@@ -1578,8 +1582,9 @@ let patientHead = null;
   for (const sx of [-1, 1]) w(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.7), padM), sx*0.4, 0.0, -0.2);              // arm boards
   w(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.1, 8), skinP), 0, 0.14, -0.72);                                  // neck
   patientHead = w(new THREE.Group(), 0, 0.16, -0.86);
-  const faceTexP = textTexP(96, 128, g => { g.fillStyle = '#b8a090'; g.fillRect(0,0,96,128); for (let i=0;i<2000;i++){ g.fillStyle = Math.random()<.5 ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.08)'; g.fillRect(Math.random()*96|0, Math.random()*128|0, 1, 1); } g.fillStyle = '#2a2020'; g.fillRect(24, 54, 16, 4); g.fillRect(56, 54, 16, 4); g.fillRect(40, 86, 16, 2); });   // placeholder until there's a photo
-  patientHead.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.24), [skinP, skinP, new THREE.MeshLambertMaterial({map: faceTexP}), skinP, skinP, new THREE.MeshLambertMaterial({color:0x2a2420})]));   // face up (+y)
+  const faceOpen = new THREE.MeshLambertMaterial({map: pixTex('face6o.png')}), faceClosed = new THREE.MeshLambertMaterial({map: pixTex('face6c.png')});
+  const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.24), [skinP, skinP, faceClosed, skinP, skinP, new THREE.MeshLambertMaterial({color:0x2a2420})]);   // face up (+y); eyes closed until he speaks
+  patientHead.add(headMesh); patientHead.userData.faces = [faceClosed, faceOpen]; patientHead.userData.mesh = headMesh;
   patientHead.children[0].rotation.x = 0;
 }
 patientG.traverse(o => o.name = 'patient');
@@ -2244,7 +2249,7 @@ function tap(e){
   ndc.set((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
   ray.setFromCamera(ndc, camera);
   if (mode === 'walk'){
-    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : []), ...(stopKind === 'clinic' ? [patientG, bell] : [])], true).find(i => shown(i.object));
+    const h = ray.intersectObjects([...ext.children, ...doorHinge.children, ...pdoorHinge.children, ...bathDoorHinge.children, ccb, ...(inBath ? [mirrorB] : []), ...coolerDoors, door103Hinge, guest, ...(inside && stopKind === 'station' ? store.children.filter(o => o.name === 'snack') : []), ...pumpNozzles, fuelDoor, ...carNozzle.children, attendant, woman, clerk, deer, ...motelG.children.filter(o => o.name === 'door103' || o.name === 'roomdoor' || o.name === 'clerk'), vendG, ...(stopKind === 'tower' ? [crier, trashG, ...(hasTorch ? [] : [floorTorch])] : []), ...(stopKind === 'clinic' ? [patientG, bell, ...clinicG.children.filter(o => o.name === 'corpse')] : [])], true).find(i => shown(i.object));
     if (h && h.distance < 3.4){
       const nm = h.object.name;
       if (nm === 'doorOut'){ if (holdingNozzle){ thought('Not with this in my hand.'); } else enterCar(); }
@@ -2273,6 +2278,7 @@ function tap(e){
       else if (nm === 'crier'){ startDialogCrier(); }
       else if (nm === 'patient'){ startDialogPatient(); }
       else if (nm === 'bell'){ sfx('ui', 0.25); thought('Nobody\u2019s coming.'); }
+      else if (nm === 'corpse'){ sfx('ui', 0.2); thought('They\u2019re gone.'); }
       else if (nm === 'torchpick'){ hasTorch = true; floorTorch.visible = false; handTorch.visible = true; sfx('open', 0.4); toast('a flashlight — it still works'); setTimeout(()=> toast('the stairs are in the back corner, under the red sign'), 3200); }
       else if (nm === 'arr'){ inspect('These are… my emergency antiarrhythmics. For my heart.'); }
       else if (nm === 'vend'){ sfx('ui', 0.25); thought('Can\u2019t. They all have caffeine.'); }
@@ -2479,8 +2485,14 @@ function startDialogCrier(){
 }
 function startDialogPatient(){
   inDialog = true; dlgEl.style.display = 'block'; joy = null; stickEl.style.display = 'none'; dragging = false; dlgName.textContent = 'ROOM 3';
-  metPatient = true;
-  say('…', [['Leave.', endDialog]]);   // the lines for this one are still to come
+  const bye = () => say('Goodbye.', [['…', () => { metPatient = true; endDialog(); }]]);
+  if (metPatient){ say('…', [['Leave.', endDialog]]); return; }
+  const sorry = line => () => say(line, [['I\u2019m sorry.', bye]]);
+  const used = () => say('Just getting used to what\u2019s coming.', [
+    ['Is that what you think happens?', sorry('Not really. I get to experience the darkness here, when I close my eyes. I think about the dark. I see it. I feel it. I won\u2019t be able to do any of that, soon. I\u2019ll just be part of it.')],
+    ['Can I help you?', sorry('No. Nobody can stop it. The dark comes, no matter what.')],
+    ['Bye.', () => say('Bye.', [['…', () => { metPatient = true; endDialog(); }]])]]);
+  say('Hello.', [['You\u2019re not gone?', () => say('No. But I will be, soon.', [['Why are your eyes closed?', used]])]]);
 }
 function knock(){ if (!ac) return; for (let i=0;i<3;i++) setTimeout(()=> click(0.7, 110 + Math.random()*20), i*260); }
 function startDialogClerk(){
@@ -2735,7 +2747,8 @@ function frame(now){
   if (stopKind === 'tower'){ const sk = Math.random() < 0.05 ? 0.3 : 1; for (const ss of stairSigns){ if (ss.isLight) ss.intensity = 0.5*sk; else ss.material.color.setScalar(0.6 + 0.4*sk); }
     const fl = Math.round(walker.h / 3.6); if (mode === 'walk' && fl !== towerFloorSeen && Math.abs(walker.h - fl*3.6) < 0.05){ towerFloorSeen = fl; if (fl === 1){ toast('second floor'); if (runnerT < 0 && !runner.userData.done){ runner.userData.done = true; setTimeout(startRunner, 700); } } else if (fl === 2) toast('third floor');  } }
   if (stopKind === 'tower' && floorTorch.visible){ const bl = Math.random() < 0.04 ? 0.3 : (0.9 + Math.sin(now*0.006)*0.1); floorTorch.userData.glow.intensity = 2.2*bl; floorTorch.userData.cone.material.opacity = 0.11*bl; }   // the dropped one, blinking on the floor
-  if (stopKind === 'clinic'){ const H = patientG.userData.heart, hd = H.userData;   // atrial fibrillation: the ventricles beat irregularly irregular, fast and uneven; the atria don't beat at all, they quiver
+  if (stopKind === 'clinic'){ const ph2 = patientHead.userData; const open = inDialog && Math.floor(now/1400) % 2 === 1; const want = ph2.faces[open ? 1 : 0]; if (ph2.mesh.material[2] !== want){ ph2.mesh.material[2] = want; ph2.mesh.material.needsUpdate = true; }   // eyes open and close in turn while he talks
+    const H = patientG.userData.heart, hd = H.userData;   // atrial fibrillation: the ventricles beat irregularly irregular, fast and uneven; the atria don't beat at all, they quiver
     hd.nextBeat -= dt; hd.beatAge += dt;
     if (hd.nextBeat <= 0){ hd.nextBeat = 0.28 + Math.random()*0.65 + (Math.random() < 0.15 ? 0.5 : 0); hd.beatAge = 0; hd.beatStr = 0.5 + Math.random()*0.7; }   // some gaps, some runs, the odd long pause
     const kick = Math.exp(-hd.beatAge*18) * hd.beatStr;                                                   // a sharp squeeze that lets go
